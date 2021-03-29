@@ -1,15 +1,14 @@
-#version 330
+#version 100
+precision highp float;
 
 uniform float u_ScreenHeight;
 
-in vec4 v_Color;
-in vec4 v_BorderColor;
-in vec2 v_Pos;
-in vec2 v_Scale;
-in float v_BorderRadius;
-in float v_BorderWidth;
-
-out vec4 o_Color;
+varying vec4 v_Color;
+varying vec4 v_BorderColor;
+varying vec2 v_Pos;
+varying vec2 v_Scale;
+varying float v_BorderRadius;
+varying float v_BorderWidth;
 
 float distance(in vec2 frag_coord, in vec2 position, in vec2 size, float radius)
 {
@@ -33,28 +32,22 @@ void main() {
     vec4 mixed_color;
 
     vec2 fragCoord = vec2(gl_FragCoord.x, u_ScreenHeight - gl_FragCoord.y);
+    float internal_border = max(v_BorderRadius - v_BorderWidth, 0.0);
 
-    // TODO: Remove branching (?)
-    if(v_BorderWidth > 0) {
-        float internal_border = max(v_BorderRadius - v_BorderWidth, 0.0);
+    float internal_distance = distance(
+        fragCoord,
+        v_Pos + vec2(v_BorderWidth),
+        v_Scale - vec2(v_BorderWidth * 2.0),
+        internal_border
+    );
 
-        float internal_distance = distance(
-            fragCoord,
-            v_Pos + vec2(v_BorderWidth),
-            v_Scale - vec2(v_BorderWidth * 2.0),
-            internal_border
-        );
+    float border_mix = smoothstep(
+        max(internal_border - 0.5, 0.0),
+        internal_border + 0.5,
+        internal_distance
+    );
 
-        float border_mix = smoothstep(
-            max(internal_border - 0.5, 0.0),
-            internal_border + 0.5,
-            internal_distance
-        );
-
-        mixed_color = mix(v_Color, v_BorderColor, border_mix);
-    } else {
-        mixed_color = v_Color;
-    }
+    mixed_color = mix(v_Color, v_BorderColor, border_mix);
 
     float d = distance(
         fragCoord,
@@ -66,5 +59,5 @@ void main() {
     float radius_alpha =
         1.0 - smoothstep(max(v_BorderRadius - 0.5, 0.0), v_BorderRadius + 0.5, d);
 
-    o_Color = vec4(mixed_color.xyz, mixed_color.w * radius_alpha);
+    gl_FragColor = vec4(mixed_color.xyz, mixed_color.w * radius_alpha);
 }

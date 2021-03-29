@@ -1,9 +1,8 @@
-#version 330
+#version 100
+precision highp float;
 
-in vec4 v_Color;
-
-out vec4 o_Color;
+varying vec4 v_Color;
 
 void main() {
-    o_Color = v_Color;
+    gl_FragColor = v_Color;
 }

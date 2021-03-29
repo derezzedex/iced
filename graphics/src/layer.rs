@@ -154,6 +154,7 @@ impl<'a> Layer<'a> {
                     border_radius: *border_radius,
                     border_width: *border_width,
                     border_color: border_color.into_linear(),
+                    id: 0.,
                 });
             }
             Primitive::Mesh2D { buffers, size } => {
@@ -259,6 +260,9 @@ pub struct Quad {
 
     /// The border width of the [`Quad`].
     pub border_width: f32,
+
+    /// Temporary index for vertices made from a [`Quad`].
+    pub id: f32,
 }
 
 /// A mesh of triangles.
