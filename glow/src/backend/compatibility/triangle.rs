@@ -32,7 +32,7 @@ impl Pipeline {
                         include_str!("shader/triangle.frag"),
                     ),
                 ],
-                &[(0, "i_Position"), (1, "i_Color")],
+                Some(&[(0, "i_Position"), (1, "i_Color")]),
             )
         };
 

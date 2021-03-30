@@ -12,9 +12,6 @@
 
 mod backend;
 mod program;
-mod quad;
-mod text;
-mod triangle;
 
 pub mod settings;
 pub mod widget;

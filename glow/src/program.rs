@@ -3,7 +3,7 @@ use glow::HasContext;
 pub unsafe fn create(
     gl: &glow::Context,
     shader_sources: &[(u32, &str)],
-    layout: &[(u32, &str)],
+    layout: Option<&[(u32, &str)]>,
 ) -> <glow::Context as HasContext>::Program {
     let program = gl.create_program().expect("Cannot create program");
 
@@ -26,8 +26,10 @@ pub unsafe fn create(
         shaders.push(shader);
     }
 
-    for (index, name) in layout.iter() {
-        gl.bind_attrib_location(program, *index, name);
+    if let Some(layout) = layout{
+        for (index, name) in layout.iter() {
+            gl.bind_attrib_location(program, *index, name);
+        }
     }
 
     gl.link_program(program);
