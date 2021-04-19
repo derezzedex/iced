@@ -36,6 +36,7 @@ impl Pipeline {
                     (3, "i_BorderColor"),
                     (4, "i_BorderRadius"),
                     (5, "i_BorderWidth"),
+                    (6, "i_id"),
                 ]),
             )
         };
@@ -146,6 +147,7 @@ impl Pipeline {
 
         while i < total {
             let end = (i + MAX_INSTANCES).min(total);
+            let amount = end - i;
 
             unsafe {
                 let vertices =
@@ -164,7 +166,7 @@ impl Pipeline {
                     bytemuck::cast_slice(&vertices),
                 );
 
-                let indices = (0..vertices.len() as i32).fold(
+                let indices = (0..amount as i32).fold(
                     Vec::new(),
                     |mut indices, i| {
                         indices.extend_from_slice(&[
