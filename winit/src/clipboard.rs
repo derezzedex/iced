@@ -11,6 +11,13 @@ enum State {
 }
 
 impl Clipboard {
+    /// TODO: Creates an empty [`Clipboard`].
+    pub fn new() -> Clipboard{
+        Clipboard{
+            state: State::Unavailable
+        }
+    }
+    
     /// Creates a new [`Clipboard`] for the given window.
     pub fn connect(window: &winit::window::Window) -> Clipboard {
         let state = window_clipboard::Clipboard::connect(window)

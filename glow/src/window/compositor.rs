@@ -73,4 +73,16 @@ impl iced_graphics::window::GLCompositor for Compositor {
 
         renderer.backend_mut().draw(gl, viewport, output, overlay)
     }
+    
+    fn read(&self, offset: (u16, u16), size: (u16, u16)) -> Vec<u8>{
+        let gl = &self.gl;
+
+        let mut pixels = Vec::new();
+        pixels.resize(3* size.0 as usize * size.1 as usize, 1);
+        unsafe{
+            gl.read_pixels(offset.0 as i32, offset.1 as i32, size.0 as i32, size.1 as i32, glow::RGB, glow::UNSIGNED_BYTE, glow::PixelPackData::Slice(&mut pixels));
+        }
+
+        pixels
+    }
 }

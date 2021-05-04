@@ -51,6 +51,7 @@ where
     runtime.spawn(init_command);
     runtime.track(subscription);
 
+    #[cfg(not(headless))]
     let context = {
         let builder = settings.window.into_builder(
             &application.title(),
@@ -58,7 +59,7 @@ where
             event_loop.primary_monitor(),
         );
 
-        let context = ContextBuilder::new()
+        ContextBuilder::new()
             .with_vsync(true)
             .with_multisampling(C::sample_count(&compositor_settings) as u16)
             .build_windowed(builder, &event_loop)
@@ -71,12 +72,30 @@ where
                     }
                     _ => Error::GraphicsAdapterNotFound,
                 }
-            })?;
+            })?
+    };
+    
+    #[cfg(headless)]
+    let context = {
+        ContextBuilder::new()
+            .with_vsync(true)
+            .with_multisampling(C::sample_count(&compositor_settings) as u16)
+            .build_headless(&event_loop, (1280, 720).into())
+            .map_err(|error| {
+                use glutin::CreationError;
 
-        #[allow(unsafe_code)]
-        unsafe {
-            context.make_current().expect("Make OpenGL context current")
-        }
+                match error {
+                    CreationError::Window(error) => {
+                        Error::WindowCreationFailed(error)
+                    }
+                    _ => Error::GraphicsAdapterNotFound,
+                }
+            })?
+    };
+
+    #[allow(unsafe_code)]
+    let context = unsafe {
+        context.make_current().expect("Make OpenGL context current")
     };
 
     #[allow(unsafe_code)]
@@ -136,6 +155,7 @@ where
     });
 }
 
+#[cfg(not(headless))]
 async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
@@ -322,6 +342,142 @@ async fn run_instance<A, E, C>(
                 ) {
                     events.push(event);
                 }
+            }
+            _ => {}
+        }
+    }
+
+    // Manually drop the user interface
+    drop(ManuallyDrop::into_inner(user_interface));
+}
+
+#[cfg(headless)]
+async fn run_instance<A, E, C>(
+    mut application: A,
+    mut compositor: C,
+    mut renderer: A::Renderer,
+    mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
+    mut debug: Debug,
+    mut receiver: mpsc::UnboundedReceiver<glutin::event::Event<'_, A::Message>>,
+    _context: glutin::Context<glutin::PossiblyCurrent>,
+    _exit_on_close_request: bool,
+) where
+    A: Application + 'static,
+    E: Executor + 'static,
+    C: window::GLCompositor<Renderer = A::Renderer> + 'static,
+{
+    use glutin::event;
+    use iced_winit::futures::stream::StreamExt;
+
+    let mut clipboard = Clipboard::new();
+    let viewport = Viewport::with_physical_size(Size::new(1280, 720), 1.);
+    let mut user_interface =
+        ManuallyDrop::new(application::build_user_interface(
+            &mut application,
+            Cache::default(),
+            &mut renderer,
+            viewport.logical_size(),
+            &mut debug,
+        ));
+
+    let mut events = Vec::new();
+    let mut messages = Vec::new();
+    
+    let mut timer = std::time::Instant::now();
+
+    debug.startup_finished();
+
+    while let Some(event) = receiver.next().await {
+        match event {
+            event::Event::MainEventsCleared => {
+                if events.is_empty() && messages.is_empty() {
+                    continue;
+                }
+
+                debug.event_processing_started();
+
+                let statuses = user_interface.update(
+                    &events,
+                    [0, 0].into(),
+                    &mut renderer,
+                    &mut clipboard,
+                    &mut messages,
+                );
+
+                debug.event_processing_finished();
+
+                for event in events.drain(..).zip(statuses.into_iter()) {
+                    runtime.broadcast(event);
+                }
+
+                if !messages.is_empty() {
+                    let cache =
+                        ManuallyDrop::into_inner(user_interface).into_cache();
+
+                    // Update application
+                    application::update(
+                        &mut application,
+                        &mut runtime,
+                        &mut debug,
+                        &mut clipboard,
+                        &mut messages,
+                    );
+
+                    let should_exit = application.should_exit();
+
+                    user_interface =
+                        ManuallyDrop::new(application::build_user_interface(
+                            &mut application,
+                            cache,
+                            &mut renderer,
+                            viewport.logical_size(),
+                            &mut debug,
+                        ));
+
+                    if should_exit {
+                        break;
+                    }
+                }
+
+                debug.draw_started();
+                let primitive =
+                    user_interface.draw(&mut renderer, [0, 0].into());
+                debug.draw_finished();
+
+                debug.render_started();
+
+                let _ = compositor.draw(
+                    &mut renderer,
+                    &viewport,
+                    Color::WHITE,
+                    &primitive,
+                    &debug.overlay(),
+                );
+
+                if timer.elapsed() > std::time::Duration::from_secs(5){
+                    let pixels = compositor.read((0, 0), (1280, 720));
+                    let mut flipped = Vec::new();
+
+                    for v in (0..720).rev(){
+                        let s= 3 * v as usize * 1280;
+                        let o = 3 * 1280;
+                        flipped.extend_from_slice(&pixels[s..(s+o)]);
+                    }
+
+                    image::save_buffer(
+                        &std::path::Path::new("framebuffer.png"),
+                        &flipped,
+                        1280,
+                        720,
+                        image::RGB(8),
+                    ).unwrap();
+                    timer = std::time::Instant::now();
+                }
+
+                debug.render_finished();
+            }
+            event::Event::UserEvent(message) => {
+                messages.push(message);
             }
             _ => {}
         }

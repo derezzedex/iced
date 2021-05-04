@@ -60,4 +60,7 @@ pub trait GLCompositor: Sized {
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> mouse::Interaction;
+
+    /// TODO
+    fn read(&self, offset: (u16, u16), size: (u16, u16)) -> Vec<u8>;
 }
