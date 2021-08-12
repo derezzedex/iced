@@ -1,0 +1,8 @@
+[build.env]
+passthrough = [
+    "RUST_BACKTRACE",
+]
+
+[target.armv7-unknown-linux-gnueabihf]
+image = "iced/armhf"
+xargo = false
