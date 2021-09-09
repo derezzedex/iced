@@ -53,6 +53,9 @@ pub trait Compositor: Sized {
         output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
     ) -> Result<mouse::Interaction, SurfaceError>;
+
+    /// Reads the framebuffer contents onto the provided buffer of bytes;
+    fn read(&mut self, buffer: &mut [u8]);
 }
 
 /// Result of an unsuccessful call to [`Compositor::draw`].

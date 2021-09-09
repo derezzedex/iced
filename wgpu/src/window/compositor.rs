@@ -1,6 +1,6 @@
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
-use futures::task::SpawnExt;
+use futures::{executor::block_on, task::SpawnExt};
 use iced_native::{futures, mouse};
 use raw_window_handle::HasRawWindowHandle;
 
@@ -14,6 +14,7 @@ pub struct Compositor {
     staging_belt: wgpu::util::StagingBelt,
     local_pool: futures::executor::LocalPool,
     format: wgpu::TextureFormat,
+    buffer: Buffer,
 }
 
 impl Compositor {
@@ -64,6 +65,38 @@ impl Compositor {
             .await
             .ok()?;
 
+        let buffer = {
+            let dimensions = Dimensions::new(1024, 768);
+            let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: None,
+                size: (dimensions.bytes_per_row * dimensions.height) as u64,
+                usage: wgpu::BufferUsages::MAP_READ
+                    | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+
+            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                size: wgpu::Extent3d {
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                usage: wgpu::TextureUsages::COPY_SRC
+                    | wgpu::TextureUsages::RENDER_ATTACHMENT,
+                label: None,
+            });
+
+            Buffer {
+                dimensions,
+                output: buffer,
+                target: texture,
+            }
+        };
+
         let staging_belt = wgpu::util::StagingBelt::new(Self::CHUNK_SIZE);
         let local_pool = futures::executor::LocalPool::new();
 
@@ -75,6 +108,7 @@ impl Compositor {
             staging_belt,
             local_pool,
             format,
+            buffer,
         })
     }
 
@@ -218,6 +252,48 @@ impl iced_graphics::window::Compositor for Compositor {
                     Err(iced_graphics::window::SurfaceError::OutOfMemory)
                 }
             },
+        }
+    }
+
+    fn read(&mut self, buffer: &mut [u8]) {
+        let slice = self.buffer.output.slice(..);
+
+        // TODO: Integrate `Command` with this `async` call?
+        let future = slice.map_async(wgpu::MapMode::Read);
+        self.device.poll(wgpu::Maintain::Wait);
+        if let Ok(_) = block_on(future) {
+            buffer.copy_from_slice(&slice.get_mapped_range());
+        }
+
+        self.buffer.output.unmap();
+    }
+}
+
+struct Buffer {
+    dimensions: Dimensions,
+    output: wgpu::Buffer,
+    target: wgpu::Texture,
+}
+
+struct Dimensions {
+    width: u32,
+    height: u32,
+    bytes_per_row: u32,
+}
+
+impl Dimensions {
+    pub fn new(width: u32, height: u32) -> Self {
+        let unpadded_bytes_per_row = width * std::mem::size_of::<u32>() as u32;
+        let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+        let padded_bytes_per_row_padding =
+            (align - unpadded_bytes_per_row % align) % align;
+        let bytes_per_row =
+            unpadded_bytes_per_row + padded_bytes_per_row_padding;
+
+        Self {
+            width,
+            height,
+            bytes_per_row,
         }
     }
 }
