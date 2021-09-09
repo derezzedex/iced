@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
 
 use futures::{executor::block_on, task::SpawnExt};
@@ -176,16 +178,16 @@ impl iced_graphics::window::Compositor for Compositor {
         overlay: &[T],
     ) -> Result<mouse::Interaction, iced_graphics::window::SurfaceError> {
         match surface.get_current_frame() {
-            Ok(frame) => {
+            Ok(_frame) => {
                 let mut encoder = self.device.create_command_encoder(
                     &wgpu::CommandEncoderDescriptor {
                         label: Some("iced_wgpu encoder"),
                     },
                 );
 
-                let view = &frame
-                    .output
-                    .texture
+                let view = &self
+                    .buffer
+                    .target
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
                 let _ =
@@ -222,6 +224,33 @@ impl iced_graphics::window::Compositor for Compositor {
                     viewport,
                     output,
                     overlay,
+                );
+
+                encoder.copy_texture_to_buffer(
+                    wgpu::ImageCopyTexture {
+                        texture: &self.buffer.target,
+                        aspect: wgpu::TextureAspect::All,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d::ZERO,
+                    },
+                    wgpu::ImageCopyBuffer {
+                        buffer: &self.buffer.output,
+                        layout: wgpu::ImageDataLayout {
+                            offset: 0,
+                            bytes_per_row: Some(
+                                NonZeroU32::new(
+                                    self.buffer.dimensions.bytes_per_row,
+                                )
+                                .unwrap(),
+                            ),
+                            rows_per_image: None,
+                        },
+                    },
+                    wgpu::Extent3d {
+                        width: self.buffer.dimensions.width,
+                        height: self.buffer.dimensions.height,
+                        depth_or_array_layers: 1,
+                    },
                 );
 
                 // Submit work
