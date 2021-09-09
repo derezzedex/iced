@@ -165,6 +165,7 @@ where
         &mut clipboard,
         &mut proxy,
         &window,
+        None,
     );
     runtime.track(subscription);
 
@@ -269,6 +270,9 @@ async fn run_instance<A, E, C>(
     let mut events = Vec::new();
     let mut messages = Vec::new();
 
+    let mut pixels = Vec::with_capacity(1024 * 768 * 4);
+    pixels.resize(1024 * 768 * 4, 0);
+
     debug.startup_finished();
 
     while let Some(event) = receiver.next().await {
@@ -307,6 +311,7 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         &window,
+                        Some(pixels.clone()),
                     );
 
                     // Update window
@@ -401,6 +406,8 @@ async fn run_instance<A, E, C>(
 
                             mouse_interaction = new_mouse_interaction;
                         }
+
+                        compositor.read(&mut pixels);
 
                         // TODO: Handle animations!
                         // Maybe we can use `ControlFlow::WaitUntil` for this.
@@ -511,6 +518,7 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
+    pixels: Option<Vec<u8>>,
 ) {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -519,7 +527,7 @@ pub fn update<A: Application, E: Executor>(
         let command = runtime.enter(|| application.update(message));
         debug.update_finished();
 
-        run_command(command, runtime, clipboard, proxy, window);
+        run_command(command, runtime, clipboard, proxy, window, pixels.clone());
     }
 
     let subscription = application.subscription();
@@ -533,6 +541,7 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
     clipboard: &mut Clipboard,
     proxy: &mut winit::event_loop::EventLoopProxy<Message>,
     window: &winit::window::Window,
+    pixels: Option<Vec<u8>>,
 ) {
     use iced_native::command;
     use iced_native::window;
@@ -568,6 +577,13 @@ pub fn run_command<Message: 'static + std::fmt::Debug + Send, E: Executor>(
                     });
                 }
             },
+            command::Action::ReadFramebuffer { message, .. } => {
+                let message = message(pixels.clone());
+
+                proxy
+                    .send_event(message)
+                    .expect("Send message to event loop");
+            }
         }
     }
 }
