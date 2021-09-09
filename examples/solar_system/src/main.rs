@@ -25,9 +25,11 @@ struct SolarSystem {
     state: State,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Message {
     Tick(Instant),
+    EventOccurred(iced_native::Event),
+    FramebufferReceived(Option<Vec<u8>>),
 }
 
 impl Application for SolarSystem {
@@ -53,14 +55,47 @@ impl Application for SolarSystem {
             Message::Tick(instant) => {
                 self.state.update(instant);
             }
+            Message::EventOccurred(event) => {
+                match event {
+                    iced_native::Event::Keyboard(
+                        iced_native::keyboard::Event::KeyReleased {
+                            key_code,
+                            ..
+                        },
+                    ) => {
+                        match key_code {
+                            iced_native::keyboard::KeyCode::P => {
+                                let message =
+                                    Box::new(Message::FramebufferReceived);
+                                return Command::single(iced_native::command::Action::ReadFramebuffer{ x: 0, y: 0, width: 1024, height: 788, message });
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Message::FramebufferReceived(content) => {
+                if let Some(pixels) = content {
+                    let image: image::ImageBuffer<image::Bgra<u8>, Vec<u8>> =
+                        image::ImageBuffer::from_raw(1024, 768, pixels.clone())
+                            .unwrap();
+                    let converted =
+                        image::DynamicImage::ImageBgra8(image).to_rgba8();
+                    converted.save("screenshot.png").unwrap();
+                }
+            }
         }
 
         Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(std::time::Duration::from_millis(10))
-            .map(|instant| Message::Tick(instant))
+        Subscription::batch([
+            time::every(std::time::Duration::from_millis(10))
+                .map(|instant| Message::Tick(instant)),
+            iced_native::subscription::events().map(Message::EventOccurred),
+        ])
     }
 
     fn view(&mut self) -> Element<Message> {
