@@ -61,6 +61,7 @@ where
         let context = ContextBuilder::new()
             .with_vsync(true)
             .with_multisampling(C::sample_count(&compositor_settings) as u16)
+            .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0)))
             .build_windowed(builder, &event_loop)
             .map_err(|error| {
                 use glutin::CreationError;
@@ -78,6 +79,8 @@ where
             context.make_current().expect("Make OpenGL context current")
         }
     };
+
+    println!("{:#?}", context.get_pixel_format());
 
     #[allow(unsafe_code)]
     let (compositor, renderer) = unsafe {

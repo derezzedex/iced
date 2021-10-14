@@ -3,6 +3,7 @@ use crate::text;
 use crate::triangle;
 use crate::{Settings, Transformation, Viewport};
 
+use glow::HasContext;
 use iced_graphics::backend;
 use iced_graphics::font;
 use iced_graphics::Layer;
@@ -33,7 +34,39 @@ impl Backend {
         );
 
         let quad_pipeline = quad::Pipeline::new(gl);
-        let triangle_pipeline = triangle::Pipeline::new(gl);
+        let triangle_pipeline = triangle::Pipeline::new(gl);        
+
+        unsafe{
+            let draw_buffer = gl.get_parameter_i32(glow::DRAW_BUFFER);
+            let attachment = if draw_buffer == glow::BACK as i32{
+                println!("GL_BACK");
+                glow::BACK
+            }else if draw_buffer == glow::FRONT as i32{
+                println!("GL_FRONT");
+                glow::FRONT
+            }else{
+                panic!("Unknown: {}", draw_buffer);
+            };
+
+            let encoding = gl.get_framebuffer_attachment_parameter_i32(glow::FRAMEBUFFER, attachment, glow::FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING);
+            if encoding == glow::LINEAR as i32{
+                println!("Linear framebuffer ({:X})", encoding);
+            }else if encoding == glow::SRGB as i32{
+                println!("sRGB framebuffer ({:X})", encoding)
+            }else{
+                println!("Unknown framebuffer: {:X}", encoding);
+            }
+
+            println!("sRGB: {}", gl.get_parameter_i32(glow::FRAMEBUFFER_SRGB));
+            println!("Vendor: {}", gl.get_parameter_string(glow::VENDOR));
+            println!("Renderer: {}", gl.get_parameter_string(glow::RENDERER));
+            println!("Version: {}", gl.get_parameter_string(glow::VERSION));
+            println!("GLSL Version: {}", gl.get_parameter_string(glow::SHADING_LANGUAGE_VERSION));
+            // let num_extensions = gl.get_parameter_i32(glow::NUM_EXTENSIONS) as u32;
+            // for i in 0..num_extensions{
+            //     println!("{}: {}", i, gl.get_parameter_indexed_string(glow::EXTENSIONS, i));
+            // }
+        }
 
         Self {
             quad_pipeline,

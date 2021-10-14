@@ -6,5 +6,5 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
+iced = { path = "../..", features = ["canvas", "tokio", "debug", "glow_canvas", "glow"] }
 rand = "0.8.3"
