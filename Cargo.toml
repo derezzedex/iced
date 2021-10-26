@@ -106,7 +106,3 @@ iced_web = { version = "0.4", path = "web" }
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 features = ["image", "svg", "canvas", "qr_code"]
-
-[patch.crates-io]
-glow = { git = "https://github.com/derezzedex/glow", rev = "c08106a2f2e5bfd34715ecf85e5abc6339089c11" }
-glow_glyph = { git = "https://github.com/derezzedex/glow_glyph", rev = "bb3aadc0b4572a705140c3a852e8295afb0d5b3c" }
