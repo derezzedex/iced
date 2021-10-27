@@ -5,6 +5,10 @@ authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2018"
 publish = false
 
+[features]
+glow = ["iced/glow_canvas", "iced/glow"]
+gl_es = ["glow", "iced/gl_es"]
+
 [dependencies]
-iced = { path = "../..", features = ["canvas", "tokio", "debug", "glow_canvas", "glow"] }
+iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
 rand = "0.8.3"

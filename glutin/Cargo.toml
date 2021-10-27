@@ -12,6 +12,7 @@ categories = ["gui"]
 
 [features]
 debug = ["iced_winit/debug"]
+gl_es = []
 
 [dependencies.glutin]
 version = "0.27"

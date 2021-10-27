@@ -46,6 +46,8 @@ async-std = ["iced_futures/async-std"]
 smol = ["iced_futures/smol"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
+# Forces an OpenGL ES context
+gl_es = ["iced_glutin/gl_es"]
 
 [badges]
 maintenance = { status = "actively-developed" }

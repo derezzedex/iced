@@ -58,10 +58,14 @@ where
             settings.id,
         );
 
-        let context = ContextBuilder::new()
+        let context_builder = ContextBuilder::new()
             .with_vsync(true)
-            .with_multisampling(C::sample_count(&compositor_settings) as u16)
-            .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)))
+            .with_multisampling(C::sample_count(&compositor_settings) as u16);
+        
+        #[cfg(feature = "gl_es")]
+        let context_builder = context_builder.with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)));
+
+        let context = context_builder
             .build_windowed(builder, &event_loop)
             .map_err(|error| {
                 use glutin::CreationError;
