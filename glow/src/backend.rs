@@ -27,6 +27,10 @@ pub struct Backend {
 impl Backend {
     /// Creates a new [`Backend`].
     pub fn new(gl: &glow::Context, settings: Settings) -> Self {
+        use sysinfo::{ProcessorExt, System, SystemExt};
+        let mut sys = System::new_all();
+        sys.refresh_all();
+
         let text_pipeline = text::Pipeline::new(
             gl,
             settings.default_font,
@@ -37,30 +41,72 @@ impl Backend {
         let triangle_pipeline = triangle::Pipeline::new(gl);
 
         unsafe {
+            use serde_json::json;
+
+            // Needs something in between refreshes to create usage data
+            sys.refresh_all();
+
+            let system = json!({
+                "meta": {
+                    "host_name": sys.host_name(),
+                    "name": sys.name(),
+                    "kernel": sys.kernel_version(),
+                    "os": sys.long_os_version(),
+                },
+                "boot_time": sys.boot_time(),
+                "uptime": sys.uptime(),
+            });
+            println!("sys: {}\n", serde_json::to_string_pretty(&system).unwrap());
+
+            let cpu = sys.global_processor_info();
+            let processor = json!({
+                "meta": {
+                    "brand": cpu.brand(),
+                    "vendor_id": cpu.vendor_id(),
+                    "name": cpu.name(),
+                    "cores": sys.physical_core_count(),
+                },
+                "usage": cpu.cpu_usage(),
+                "frequency": cpu.frequency(),
+            });
+            println!("processor: {}\n", serde_json::to_string_pretty(&processor).unwrap());
+
+            let memory = json!({
+                "meta": {
+                    "total": sys.total_memory(),
+                },
+                "used": sys.used_memory(),
+                "available": sys.available_memory(),
+            });
+            println!("memory: {}\n", serde_json::to_string_pretty(&memory).unwrap());
+
+            // OpenGL
             let encoding = gl.get_framebuffer_attachment_parameter_i32(
                 glow::FRAMEBUFFER,
                 glow::BACK,
                 glow::FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING,
             );
-            if encoding == glow::LINEAR as i32 {
-                println!("Encoding: LINEAR");
-            } else if encoding == glow::SRGB as i32 {
-                println!("Encoding: SRGB");
-            } else {
-                println!("Encoding: OTHER (0x{:X})", encoding);
-            }
 
-            println!(
-                "FRAMEBUFFER_SRGB: {}",
-                gl.get_parameter_i32(glow::FRAMEBUFFER_SRGB)
-            );
-            println!("VENDOR: {}", gl.get_parameter_string(glow::VENDOR));
-            println!("RENDERER: {}", gl.get_parameter_string(glow::RENDERER));
-            println!("VERSION: {}", gl.get_parameter_string(glow::VERSION));
-            println!(
-                "SHADING LANGUAGE VERSION: {}",
-                gl.get_parameter_string(glow::SHADING_LANGUAGE_VERSION)
-            );
+            let fb_encoding = if encoding == glow::LINEAR as i32 {
+                "linear".to_string()
+            } else if encoding == glow::SRGB as i32 {
+                "sRGB".to_string()
+            } else {
+                format!("other (0x{:X})", encoding)
+            };
+
+            let gpu = json!({
+                "meta": {
+                    "vendor": gl.get_parameter_string(glow::VENDOR),
+                    "renderer": gl.get_parameter_string(glow::RENDERER),
+                },
+                "encoding": fb_encoding,
+                "gl": gl.get_parameter_string(glow::VERSION),
+                "glsl":
+                    gl.get_parameter_string(glow::SHADING_LANGUAGE_VERSION),
+            });
+            println!("gpu: {}\n", serde_json::to_string_pretty(&gpu).unwrap());
+
         }
 
         Self {
