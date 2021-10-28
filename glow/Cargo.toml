@@ -26,12 +26,12 @@ serde_json = "1.0"
 [dependencies.glow]
 version = "0.11"
 git = "https://github.com/derezzedex/glow"
-rev = "c08106a2f2e5bfd34715ecf85e5abc6339089c11"
+rev = "82842b79af83d3e3e975aa7c5b78bd3c6438e712"
 
 [dependencies.glow_glyph]
 version = "0.4"
 git = "https://github.com/derezzedex/glow_glyph"
-rev = "11dd99128b0f9f8ddac2ee19fedbace07da6c7dc"
+rev = "ddb7b7d6d376aced00716b9545800ececd2d40e2"
 
 [dependencies.iced_native]
 version = "0.4"
