@@ -49,6 +49,8 @@ pub fn main() {
         }
     };
 
+    let scene = Scene::new(&gl, &shader_version);
+
     let physical_size = windowed_context.window().inner_size();
     let mut viewport = Viewport::with_physical_size(
         Size::new(physical_size.width, physical_size.height),
@@ -74,7 +76,6 @@ pub fn main() {
     let mut resized = false;
 
     event_loop.run(move |event, _, control_flow| {
-        let scene = Scene::new(&gl, &shader_version);
         *control_flow = ControlFlow::Wait;
 
         match event {
