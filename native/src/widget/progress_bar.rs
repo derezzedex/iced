@@ -47,7 +47,7 @@ where
     ///   * the current value of the [`ProgressBar`]
     pub fn new(range: RangeInclusive<f32>, value: f32) -> Self {
         ProgressBar {
-            value: value.max(*range.start()).min(*range.end()),
+            value: value.clamp(*range.start(), *range.end()),
             range,
             width: Length::Fill,
             height: None,
@@ -124,12 +124,12 @@ where
                 / (range_end - range_start)
         };
 
-        let style = theme.appearance(self.style);
+        let style = theme.appearance(&self.style);
 
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle { ..bounds },
-                border_radius: style.border_radius,
+                border_radius: style.border_radius.into(),
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             },
@@ -143,7 +143,7 @@ where
                         width: active_progress_width,
                         ..bounds
                     },
-                    border_radius: style.border_radius,
+                    border_radius: style.border_radius.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },

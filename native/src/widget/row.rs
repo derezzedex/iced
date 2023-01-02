@@ -134,6 +134,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
         operation.container(None, &mut |operation| {
@@ -142,7 +143,9 @@ where
                 .zip(&mut tree.children)
                 .zip(layout.children())
                 .for_each(|((child, state), layout)| {
-                    child.as_widget().operate(state, layout, operation);
+                    child
+                        .as_widget()
+                        .operate(state, layout, renderer, operation);
                 })
         });
     }
@@ -229,12 +232,12 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        overlay::from_children(&self.children, tree, layout, renderer)
+        overlay::from_children(&mut self.children, tree, layout, renderer)
     }
 }
 

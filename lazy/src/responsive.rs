@@ -3,8 +3,8 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
-use iced_native::widget::horizontal_space;
 use iced_native::widget::tree::{self, Tree};
+use iced_native::widget::{self, horizontal_space};
 use iced_native::{
     Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
 };
@@ -142,6 +142,29 @@ where
         layout::Node::new(limits.max())
     }
 
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State>();
+        let mut content = self.content.borrow_mut();
+
+        content.resolve(
+            &mut state.tree.borrow_mut(),
+            renderer,
+            layout,
+            &self.view,
+            |tree, renderer, layout, element| {
+                element
+                    .as_widget()
+                    .operate(tree, layout, renderer, operation);
+            },
+        );
+    }
+
     fn on_event(
         &mut self,
         tree: &mut Tree,
@@ -235,18 +258,20 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        use std::ops::DerefMut;
+
         let state = tree.state.downcast_ref::<State>();
 
         let overlay = OverlayBuilder {
             content: self.content.borrow_mut(),
             tree: state.tree.borrow_mut(),
             types: PhantomData,
-            overlay_builder: |content, tree| {
+            overlay_builder: |content: &mut RefMut<Content<_, _>>, tree| {
                 content.update(
                     tree,
                     renderer,
@@ -254,16 +279,18 @@ where
                     &self.view,
                 );
 
+                let Content {
+                    element, layout, ..
+                } = content.deref_mut();
+
                 let content_layout = Layout::with_offset(
-                    layout.position() - Point::ORIGIN,
-                    &content.layout,
+                    layout.bounds().position() - Point::ORIGIN,
+                    layout,
                 );
 
-                content.element.as_widget().overlay(
-                    tree,
-                    content_layout,
-                    renderer,
-                )
+                element
+                    .as_widget_mut()
+                    .overlay(tree, content_layout, renderer)
             },
         }
         .build();

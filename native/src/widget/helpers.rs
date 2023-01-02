@@ -1,4 +1,5 @@
 //! Helper functions to create pure widgets.
+use crate::overlay;
 use crate::widget;
 use crate::{Element, Length};
 
@@ -18,7 +19,7 @@ macro_rules! column {
     );
 }
 
-/// Creates a [Row`] with the given children.
+/// Creates a [`Row`] with the given children.
 ///
 /// [`Row`]: widget::Row
 #[macro_export]
@@ -84,6 +85,7 @@ pub fn button<'a, Message, Renderer>(
 where
     Renderer: crate::Renderer,
     Renderer::Theme: widget::button::StyleSheet,
+    <Renderer::Theme as widget::button::StyleSheet>::Style: Default,
 {
     widget::Button::new(content)
 }
@@ -160,7 +162,7 @@ where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::toggler::StyleSheet,
 {
-    widget::Toggler::new(is_checked, label, f)
+    widget::Toggler::new(label, is_checked, f)
 }
 
 /// Creates a new [`TextInput`].
@@ -196,6 +198,23 @@ where
     widget::Slider::new(range, value, on_change)
 }
 
+/// Creates a new [`VerticalSlider`].
+///
+/// [`VerticalSlider`]: widget::VerticalSlider
+pub fn vertical_slider<'a, T, Message, Renderer>(
+    range: std::ops::RangeInclusive<T>,
+    value: T,
+    on_change: impl Fn(T) -> Message + 'a,
+) -> widget::VerticalSlider<'a, T, Message, Renderer>
+where
+    T: Copy + From<u8> + std::cmp::PartialOrd,
+    Message: Clone,
+    Renderer: crate::Renderer,
+    Renderer::Theme: widget::slider::StyleSheet,
+{
+    widget::VerticalSlider::new(range, value, on_change)
+}
+
 /// Creates a new [`PickList`].
 ///
 /// [`PickList`]: widget::PickList
@@ -208,7 +227,12 @@ where
     T: ToString + Eq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: crate::text::Renderer,
-    Renderer::Theme: widget::pick_list::StyleSheet,
+    Renderer::Theme: widget::pick_list::StyleSheet
+        + widget::scrollable::StyleSheet
+        + overlay::menu::StyleSheet
+        + widget::container::StyleSheet,
+    <Renderer::Theme as overlay::menu::StyleSheet>::Style:
+        From<<Renderer::Theme as widget::pick_list::StyleSheet>::Style>,
 {
     widget::PickList::new(options, selected, on_selected)
 }
@@ -278,6 +302,12 @@ where
 ///
 /// [`Svg`]: widget::Svg
 /// [`Handle`]: widget::svg::Handle
-pub fn svg(handle: impl Into<widget::svg::Handle>) -> widget::Svg {
+pub fn svg<Renderer>(
+    handle: impl Into<widget::svg::Handle>,
+) -> widget::Svg<Renderer>
+where
+    Renderer: crate::svg::Renderer,
+    Renderer::Theme: widget::svg::StyleSheet,
+{
     widget::Svg::new(handle)
 }

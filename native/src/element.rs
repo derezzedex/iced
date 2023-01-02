@@ -290,6 +290,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<B>,
     ) {
         struct MapOperation<'a, B> {
@@ -316,10 +317,30 @@ where
             ) {
                 self.operation.focusable(state, id);
             }
+
+            fn scrollable(
+                &mut self,
+                state: &mut dyn widget::operation::Scrollable,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.scrollable(state, id);
+            }
+
+            fn text_input(
+                &mut self,
+                state: &mut dyn widget::operation::TextInput,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.text_input(state, id);
+            }
         }
 
-        self.widget
-            .operate(tree, layout, &mut MapOperation { operation });
+        self.widget.operate(
+            tree,
+            layout,
+            renderer,
+            &mut MapOperation { operation },
+        );
     }
 
     fn on_event(
@@ -389,7 +410,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -457,9 +478,12 @@ where
         &self,
         state: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
-        self.element.widget.operate(state, layout, operation)
+        self.element
+            .widget
+            .operate(state, layout, renderer, operation)
     }
 
     fn on_event(
@@ -503,7 +527,7 @@ where
                     bounds: layout.bounds(),
                     border_color: color,
                     border_width: 1.0,
-                    border_radius: 0.0,
+                    border_radius: 0.0.into(),
                 },
                 Color::TRANSPARENT,
             );
@@ -544,7 +568,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,

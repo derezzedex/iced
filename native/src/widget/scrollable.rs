@@ -164,6 +164,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
         let state = tree.state.downcast_mut::<State>();
@@ -174,6 +175,7 @@ where
             self.content.as_widget().operate(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),
+                renderer,
                 operation,
             );
         });
@@ -233,7 +235,7 @@ where
             self.scrollbar_width,
             self.scrollbar_margin,
             self.scroller_width,
-            self.style,
+            &self.style,
             |renderer, layout, cursor_position, viewport| {
                 self.content.as_widget().draw(
                     &tree.children[0],
@@ -276,13 +278,13 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         self.content
-            .as_widget()
+            .as_widget_mut()
             .overlay(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),
@@ -331,6 +333,12 @@ impl Id {
     /// This function produces a different [`Id`] every time it is called.
     pub fn unique() -> Self {
         Self(widget::Id::unique())
+    }
+}
+
+impl From<Id> for widget::Id {
+    fn from(id: Id) -> Self {
+        id.0
     }
 }
 
@@ -627,7 +635,7 @@ pub fn draw<Renderer>(
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
     draw_content: impl FnOnce(&mut Renderer, Layout<'_>, Point, &Rectangle),
 ) where
     Renderer: crate::Renderer,
@@ -698,7 +706,7 @@ pub fn draw<Renderer>(
                     renderer.fill_quad(
                         renderer::Quad {
                             bounds: scrollbar.bounds,
-                            border_radius: style.border_radius,
+                            border_radius: style.border_radius.into(),
                             border_width: style.border_width,
                             border_color: style.border_color,
                         },
@@ -708,14 +716,13 @@ pub fn draw<Renderer>(
                     );
                 }
 
-                if is_mouse_over
-                    || state.is_scroller_grabbed()
-                    || is_scrollbar_visible
+                if (is_mouse_over || state.is_scroller_grabbed())
+                    && is_scrollbar_visible
                 {
                     renderer.fill_quad(
                         renderer::Quad {
                             bounds: scrollbar.scroller.bounds,
-                            border_radius: style.scroller.border_radius,
+                            border_radius: style.scroller.border_radius.into(),
                             border_width: style.scroller.border_width,
                             border_color: style.scroller.border_color,
                         },
@@ -876,8 +883,7 @@ impl State {
 
         self.offset = Offset::Absolute(
             (self.offset.absolute(bounds, content_bounds) - delta_y)
-                .max(0.0)
-                .min((content_bounds.height - bounds.height) as f32),
+                .clamp(0.0, content_bounds.height - bounds.height),
         );
     }
 
@@ -900,7 +906,7 @@ impl State {
     /// `0` represents scrollbar at the top, while `1` represents scrollbar at
     /// the bottom.
     pub fn snap_to(&mut self, percentage: f32) {
-        self.offset = Offset::Relative(percentage.max(0.0).min(1.0));
+        self.offset = Offset::Relative(percentage.clamp(0.0, 1.0));
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the

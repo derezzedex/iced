@@ -58,10 +58,10 @@ where
     /// title of your application when necessary.
     fn title(&self) -> String;
 
-    /// Returns the current [`Theme`] of the [`Application`].
+    /// Returns the current `Theme` of the [`Application`].
     fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
 
-    /// Returns the [`Style`] variation of the [`Theme`].
+    /// Returns the `Style` variation of the `Theme`.
     fn style(
         &self,
     ) -> <<Self::Renderer as crate::Renderer>::Theme as StyleSheet>::Style {
@@ -92,13 +92,6 @@ where
     /// By default, it returns `1.0`.
     fn scale_factor(&self) -> f64 {
         1.0
-    }
-
-    /// Returns whether the [`Application`] should be terminated.
-    ///
-    /// By default, it returns `false`.
-    fn should_exit(&self) -> bool {
-        false
     }
 }
 
@@ -137,6 +130,9 @@ where
         runtime.enter(|| A::new(flags))
     };
 
+    #[cfg(target_arch = "wasm32")]
+    let target = settings.window.platform_specific.target.clone();
+
     let builder = settings.window.into_builder(
         &application.title(),
         event_loop.primary_monitor(),
@@ -159,9 +155,20 @@ where
         let document = window.document().unwrap();
         let body = document.body().unwrap();
 
-        let _ = body
-            .append_child(&canvas)
-            .expect("Append canvas to HTML body");
+        let target = target.and_then(|target| {
+            body.query_selector(&format!("#{}", target))
+                .ok()
+                .unwrap_or(None)
+        });
+
+        let _ = match target {
+            Some(node) => node
+                .replace_child(&canvas, &node)
+                .expect(&format!("Could not replace #{}", node.id())),
+            None => body
+                .append_child(&canvas)
+                .expect("Append canvas to HTML body"),
+        };
     }
 
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
@@ -241,6 +248,7 @@ async fn run_instance<A, E, C>(
     let mut clipboard = Clipboard::connect(&window);
     let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(&window);
+    let mut should_exit = false;
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -261,6 +269,7 @@ async fn run_instance<A, E, C>(
         init_command,
         &mut runtime,
         &mut clipboard,
+        &mut should_exit,
         &mut proxy,
         &mut debug,
         &window,
@@ -322,6 +331,7 @@ async fn run_instance<A, E, C>(
                         &mut renderer,
                         &mut runtime,
                         &mut clipboard,
+                        &mut should_exit,
                         &mut proxy,
                         &mut debug,
                         &mut messages,
@@ -331,8 +341,6 @@ async fn run_instance<A, E, C>(
 
                     // Update window
                     state.synchronize(&application, &window);
-
-                    let should_exit = application.should_exit();
 
                     user_interface = ManuallyDrop::new(build_user_interface(
                         &application,
@@ -542,6 +550,7 @@ pub fn update<A: Application, E: Executor>(
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
+    should_exit: &mut bool,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
@@ -565,6 +574,7 @@ pub fn update<A: Application, E: Executor>(
             command,
             runtime,
             clipboard,
+            should_exit,
             proxy,
             debug,
             window,
@@ -585,6 +595,7 @@ pub fn run_command<A, E>(
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
+    should_exit: &mut bool,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     window: &winit::window::Window,
@@ -616,16 +627,28 @@ pub fn run_command<A, E>(
                 }
             },
             command::Action::Window(_id, action) => match action {
-                window::Action::Spawn { .. } | window::Action::Close => {
+                window::Action::Spawn { .. } => {
                     log::info!(
                         "This is only available on `multi_window::Application`"
                     )
+                }
+                window::Action::Close => {
+                    *should_exit = true;
+                }
+                window::Action::Drag => {
+                    let _res = window.drag_window();
                 }
                 window::Action::Resize { width, height } => {
                     window.set_inner_size(winit::dpi::LogicalSize {
                         width,
                         height,
                     });
+                }
+                window::Action::Maximize(value) => {
+                    window.set_maximized(value);
+                }
+                window::Action::Minimize(value) => {
+                    window.set_minimized(value);
                 }
                 window::Action::Move { x, y } => {
                     window.set_outer_position(winit::dpi::LogicalPosition {
@@ -639,6 +662,12 @@ pub fn run_command<A, E>(
                         window.primary_monitor(),
                         mode,
                     ));
+                }
+                window::Action::ToggleMaximize => {
+                    window.set_maximized(!window.is_maximized())
+                }
+                window::Action::ToggleDecorations => {
+                    window.set_decorations(!window.is_decorated())
                 }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
