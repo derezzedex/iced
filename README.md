@@ -74,8 +74,9 @@ iced = "0.12"
 If your project is using a Rust edition older than 2021, then you will need to
 set `resolver = "2"` in the `[package]` section as well.
 
-__Iced moves fast and the `master` branch can contain breaking changes!__ If
-you want to learn about a specific release, check out [the release list].
+> [!WARNING]
+> Iced moves fast and the `master` branch can contain breaking changes!
+> If you want to learn about a specific release, check out [the release list].
 
 [the release list]: https://github.com/iced-rs/iced/releases
 
