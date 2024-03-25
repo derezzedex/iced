@@ -1,10 +1,10 @@
 //! This example showcases a simple native custom widget that draws a circle.
 mod circle {
-    // For now, to implement a custom native widget you will need to add
-    // `iced_native` and `iced_wgpu` to your dependencies.
+    // To implement a custom widget you will need to add
+    // `iced` to your dependencies and enable the `advanced` feature.
     //
     // Then, you simply need to define your widget type and implement the
-    // `iced_native::Widget` trait with the `iced_wgpu::Renderer`.
+    // `iced::advanced::widget::Widget` trait with the `iced::renderer::Renderer`.
     //
     // Of course, you can choose to make the implementation renderer-agnostic,
     // if you wish to, by creating your own `Renderer` trait, which could be

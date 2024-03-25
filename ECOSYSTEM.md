@@ -74,19 +74,13 @@ Finally, [`iced`] unifies everything into a simple abstraction to create cross-p
 
 [`iced_core`]: core
 [`iced_futures`]: futures
-[`iced_style`]: style
-[`iced_native`]: native
 [`iced_web`]: https://github.com/iced-rs/iced_web
 [`iced_graphics`]: graphics
 [`iced_wgpu`]: wgpu
-[`iced_glow`]: glow
 [`iced_winit`]: winit
-[`iced_glutin`]: glutin
 [`iced`]: ..
 [`futures`]: https://github.com/rust-lang/futures-rs
-[`glow`]: https://github.com/grovesNL/glow
 [`wgpu`]: https://github.com/gfx-rs/wgpu
 [`winit`]: https://github.com/rust-windowing/winit
-[`glutin`]: https://github.com/rust-windowing/glutin
 [`wasm`]: https://webassembly.org/
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/

@@ -29,7 +29,6 @@ The name of the `package` is `tour` and the __[`main`](tour/src/main.rs)__ file 
 </div>
 
 [`iced_winit`]: ../winit
-[`iced_native`]: ../native
 [`iced_wgpu`]: ../wgpu
 [`winit`]: https://github.com/rust-windowing/winit
 [`wgpu`]: https://github.com/gfx-rs/wgpu
