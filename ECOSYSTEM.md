@@ -26,7 +26,7 @@ There are a bunch of concepts that permeate the whole ecosystem. These concepts 
 
 - [`iced_core`] contains many lightweight, reusable primitives (e.g. `Point`, `Rectangle`, `Color`).
 - [`iced_futures`] implements the concurrent concepts of [The Elm Architecture] on top of the [`futures`] ecosystem.
-- [`iced_style`] defines the default styling capabilities of built-in widgets.
+- [`iced_widget`] defines the default styling capabilities of built-in widgets.
 
 <p align="center">
   <img alt="The foundations" src="docs/graphs/foundations.png" width="50%">
@@ -74,6 +74,7 @@ Finally, [`iced`] unifies everything into a simple abstraction to create cross-p
 
 [`iced_core`]: core
 [`iced_futures`]: futures
+[`iced_widget`]: widget
 [`iced_web`]: https://github.com/iced-rs/iced_web
 [`iced_graphics`]: graphics
 [`iced_wgpu`]: wgpu
