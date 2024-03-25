@@ -15,7 +15,7 @@
 //!     systems
 //!   * A [built-in renderer] supporting Vulkan, Metal, DX11, and DX12
 //!   * A [windowing shell]
-//!   * A [web runtime] leveraging the DOM
+//!   * A [web target] leveraging [`wgpu`] to render in a `canvas`.
 //!
 //! Check out the [repository] and the [examples] for more details!
 //!
@@ -28,8 +28,7 @@
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.12/wgpu
 //! [windowing shell]: https://github.com/iced-rs/iced/tree/0.12/winit
-//! [`dodrio`]: https://github.com/fitzgen/dodrio
-//! [web runtime]: https://github.com/iced-rs/iced_web
+//! [web target]: ECOSYSTEM.md#the-web-target
 //! [examples]: https://github.com/iced-rs/iced/tree/0.12/examples
 //! [repository]: https://github.com/iced-rs/iced
 //!

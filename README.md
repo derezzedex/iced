@@ -40,7 +40,7 @@ Inspired by [Elm].
     * [`iced_wgpu`] supporting Vulkan, Metal and DX12
     * [`iced_tiny_skia`] offering a software alternative as a fallback
   * A [windowing shell]
-  * A [web runtime] leveraging the DOM
+  * A [web target] leveraging [`wgpu`] to render in a `canvas`.
 
 __Iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues], and [feel free to contribute!]
@@ -57,8 +57,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 [`iced_tiny_skia`]: tiny_skia/
 [built-in renderers]: ECOSYSTEM.md#Renderers
 [windowing shell]: winit/
-[`dodrio`]: https://github.com/fitzgen/dodrio
-[web runtime]: https://github.com/iced-rs/iced_web
+[web target]: ECOSYSTEM.md#the-web-target
 [Take a look at the roadmap]: ROADMAP.md
 [check out the issues]: https://github.com/iced-rs/iced/issues
 [feel free to contribute!]: #contributing--feedback

@@ -57,15 +57,16 @@ Normally, a shell will be responsible of creating a window and managing the life
 As of now, there is one official shell: [`iced_winit`] implements a shell runtime on top of [`winit`].
 
 ## The web target
-The Web platform provides all the abstractions necessary to draw widgets and gather users interactions.
+After iced version [`0.4.0`](https://github.com/iced-rs/iced/pull/1328), targetting web leverages WebGL support from `iced_wgpu` to render to a `canvas` element.
 
-Therefore, unlike the native path, the web side of the ecosystem does not need to split renderers and shells. Instead, [`iced_web`] leverages [`dodrio`] to both render widgets and implement a proper runtime.
+If you have a native iced application, chances are you can compile it to [`wasm`]! No additional feature flags necessary! Just slap a `--target wasm32-unknown-unknown` to your cargo command.
+
+The repository previously contained a `web` crate that leveraged the DOM, it has been moved to the [`iced_web`] repository and archived. Check [`iced_web`] for more information.
 
 ## Iced
 Finally, [`iced`] unifies everything into a simple abstraction to create cross-platform applications:
 
 - On native, it uses __[shells](#shells)__ and __[renderers](#renderers)__.
-- On the web, it uses [`iced_web`].
 
 <p align="center">
   <img alt="Iced" src="docs/graphs/iced.png" width="80%">
@@ -87,5 +88,5 @@ Finally, [`iced`] unifies everything into a simple abstraction to create cross-p
 [`wgpu`]: https://github.com/gfx-rs/wgpu
 [`winit`]: https://github.com/rust-windowing/winit
 [`glutin`]: https://github.com/rust-windowing/glutin
-[`dodrio`]: https://github.com/fitzgen/dodrio
+[`wasm`]: https://webassembly.org/
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
