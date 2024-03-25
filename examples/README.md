@@ -6,10 +6,21 @@
 
 [the release list]: https://github.com/iced-rs/iced/releases
 
+## Trying the examples
+
+All of the examples are inside the [`examples`](`examples/`) directory and packaged in their own crate.
+Because of this, to run any of the examples you can use `cargo` and the `name` of the `package` in it's `Cargo.toml` file.
+
+```
+cargo run --package <example>
+cargo run --package tour
+cargo run --package system_information
+```
+
 ## [Tour](tour)
 A simple UI tour that can run both on native platforms and the web! It showcases different widgets that can be built using Iced.
 
-The __[`main`](tour/src/main.rs)__ file contains all the code of the example! All the cross-platform GUI is defined in terms of __state__, __messages__, __update logic__ and __view logic__.
+The name of the `package` is `tour` and the __[`main`](tour/src/main.rs)__ file contains all the code of the example! All the cross-platform GUI is defined in terms of __state__, __messages__, __update logic__ and __view logic__.
 
 <div align="center">
   <a href="https://iced.rs/examples/tour.mp4">
@@ -24,26 +35,16 @@ The __[`main`](tour/src/main.rs)__ file contains all the code of the example! Al
 [`winit`]: https://github.com/rust-windowing/winit
 [`wgpu`]: https://github.com/gfx-rs/wgpu
 
-You can run the native version with `cargo run`:
-```
-cargo run --package tour
-```
-
 ## [Todos](todos)
 A todos tracker inspired by [TodoMVC]. It showcases dynamic layout, text input, checkboxes, scrollables, icons, and async actions! It automatically saves your tasks in the background, even if you did not finish typing them.
 
-The example code is located in the __[`main`](todos/src/main.rs)__ file.
+The package name is `todos` and the example code is located in the __[`main`](todos/src/main.rs)__ file.
 
 <div align="center">
   <a href="https://iced.rs/examples/todos.mp4">
     <img src="https://iced.rs/examples/todos.gif" height="400px">
   </a>
 </div>
-
-You can run the native version with `cargo run`:
-```
-cargo run --package todos
-```
 
 [TodoMVC]: http://todomvc.com/
 
@@ -52,16 +53,11 @@ An interactive version of the [Game of Life], invented by [John Horton Conway].
 
 It runs a simulation in a background thread while allowing interaction with a `Canvas` that displays an infinite grid with zooming, panning, and drawing support.
 
-The relevant code is located in the __[`main`](game_of_life/src/main.rs)__ file.
+The package name is `game_of_life` and the relevant code is located in the __[`main`](game_of_life/src/main.rs)__ file.
 
 <div align="center">
   <img src="https://iced.rs/examples/game_of_life.gif">
 </div>
-
-You can run it with `cargo run`:
-```
-cargo run --package game_of_life
-```
 
 [Game of Life]: https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 [John Horton Conway]: https://en.wikipedia.org/wiki/John_Horton_Conway
@@ -69,18 +65,13 @@ cargo run --package game_of_life
 ## [Styling](styling)
 An example showcasing custom styling with a light and dark theme.
 
-The example code is located in the __[`main`](styling/src/main.rs)__ file.
+The package name is `styling` and example code is located in the __[`main`](styling/src/main.rs)__ file.
 
 <div align="center">
   <img src="https://iced.rs/examples/styling.gif">
 </div>
 
-You can run it with `cargo run`:
-```
-cargo run --package styling
-```
-
-## Extras
+## Other examples
 A bunch of simpler examples exist:
 
 - [`bezier_tool`](bezier_tool), a Paint-like tool for drawing Bézier curves using the `Canvas` widget.
@@ -101,11 +92,6 @@ A bunch of simpler examples exist:
 - [`solar_system`](solar_system), an animated solar system drawn using the `Canvas` widget and showcasing how to compose different transforms.
 - [`stopwatch`](stopwatch), a watch with start/stop and reset buttons showcasing how to listen to time.
 - [`svg`](svg), an application that renders the [Ghostscript Tiger] by leveraging the `Svg` widget.
-
-All of them are packaged in their own crate and, therefore, can be run using `cargo`:
-```
-cargo run --package <example>
-```
 
 [`lyon`]: https://github.com/nical/lyon
 [PokéAPI]: https://pokeapi.co/
