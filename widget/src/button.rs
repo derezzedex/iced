@@ -16,6 +16,8 @@
 //!     button("Press me!").on_press(Message::ButtonPressed).into()
 //! }
 //! ```
+use iced_runtime::core::widget::operation::inspectable;
+
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::layout;
@@ -197,9 +199,31 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Default)]
 struct State {
     is_pressed: bool,
+    properties: inspectable::Properties,
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.is_pressed == other.is_pressed
+    }
+}
+
+impl State {
+    fn new(properties: inspectable::Properties) -> Self {
+        Self {
+            properties,
+            ..Default::default()
+        }
+    }
+}
+
+impl crate::core::widget::operation::Inspectable for State {
+    fn properties(&self) -> inspectable::Properties {
+        self.properties.clone()
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -214,7 +238,14 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::default())
+        let properties = inspectable::Properties {
+            name: String::from("Button"),
+            // size: Some(self.size()),
+            // padding: Some(self.padding),
+            ..Default::default()
+        };
+
+        tree::State::new(State::new(properties))
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -260,6 +291,9 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
+        let state = tree.state.downcast_mut::<State>();
+
+        // operation.inspectable(None, layout.bounds(), state);
         operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],

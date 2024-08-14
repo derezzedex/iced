@@ -1,9 +1,11 @@
 //! Query or update internal widget state.
 pub mod focusable;
+pub mod inspectable;
 pub mod scrollable;
 pub mod text_input;
 
 pub use focusable::Focusable;
+pub use inspectable::Inspectable;
 pub use scrollable::Scrollable;
 pub use text_input::TextInput;
 
@@ -31,6 +33,15 @@ pub trait Operation<T = ()>: Send {
 
     /// Operates on a widget that can be focused.
     fn focusable(&mut self, _state: &mut dyn Focusable, _id: Option<&Id>) {}
+
+    /// Operates on a widget that can be inspected.
+    fn inspectable(
+        &mut self,
+        _id: Option<&Id>,
+        _bounds: Rectangle,
+        _state: &mut dyn Inspectable,
+    ) {
+    }
 
     /// Operates on a widget that can be scrolled.
     fn scrollable(
@@ -230,6 +241,15 @@ where
                     operation.container(id, bounds, &mut |operation| {
                         operate_on_children(&mut MapRef { operation });
                     });
+                }
+
+                fn inspectable(
+                    &mut self,
+                    id: Option<&Id>,
+                    bounds: Rectangle,
+                    state: &mut dyn Inspectable,
+                ) {
+                    self.operation.inspectable(id, bounds, state)
                 }
 
                 fn scrollable(

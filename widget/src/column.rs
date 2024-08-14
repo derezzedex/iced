@@ -1,4 +1,7 @@
 //! Distribute content vertically.
+use iced_runtime::core::widget::operation::inspectable::Properties;
+use iced_runtime::core::widget::operation::Inspectable;
+
 use crate::core::alignment::{self, Alignment};
 use crate::core::event::{self, Event};
 use crate::core::layout;
@@ -245,6 +248,17 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
+        struct State;
+
+        impl Inspectable for State {
+            fn properties(&self) -> Properties {
+                Properties {
+                    name: String::from("Column"),
+                }
+            }
+        }
+
+        operation.inspectable(None, layout.bounds(), &mut State as &mut dyn Inspectable);
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children
                 .iter()
