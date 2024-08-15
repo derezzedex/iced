@@ -3,21 +3,14 @@ use std::collections::VecDeque;
 
 use crate::widget;
 use crate::widget::operation::Outcome;
+use crate::widget::Operation;
 use crate::Rectangle;
-use crate::{widget::Operation, Length, Padding, Size};
-// use crate::alignment;
 
 use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone, Default)]
 pub struct Properties {
     pub name: String,
-    // pub size: Option<Size<Length>>,
-    // pub max_size: Option<Size<f32>>,
-    // pub padding: Option<Padding>,
-    // horizontal_alignment: Option<alignment::Horizontal>,
-    // vertical_alignment: Option<alignment::Vertical>,
-    // clip: Option<bool>,
 }
 
 pub trait Inspectable {
@@ -26,27 +19,34 @@ pub trait Inspectable {
 
 #[derive(Debug, Clone)]
 pub struct Map {
-    root: Option<widget::Id>,
+    // TODO: root: Option<widget::Id>,
     elements: FxHashMap<widget::Id, Element>,
 }
 
+impl Map {
+    pub fn widgets(&self) -> impl Iterator<Item = &Element> {
+        self.elements.values()
+    }
+}
+
 #[derive(Debug, Default, Clone)]
-struct Element {
-    parent: Option<widget::Id>,
-    bounds: Rectangle,
-    properties: Properties,
+pub struct Element {
+    // TODO: parent: Option<widget::Id>,
+    pub bounds: Rectangle,
+    pub properties: Properties,
     children: Vec<widget::Id>,
 }
 
 pub fn map() -> impl Operation<Map> {
+    #[derive(Debug)]
     struct Container {
-        id: widget::Id,
+        // TODO: id: widget::Id,
         children: Vec<widget::Id>,
     }
 
     #[derive(Default)]
     struct InspectableMap {
-        root: Option<widget::Id>,
+        // TODO: root: Option<widget::Id>,
         parent: VecDeque<Container>,
         elements: FxHashMap<widget::Id, Element>,
     }
@@ -65,10 +65,9 @@ pub fn map() -> impl Operation<Map> {
             }
 
             let properties = state.properties();
-            println!("Inspecting: {:?}({id:?})", properties.name);
 
             let element = Element {
-                parent: self.parent.back_mut().map(|p| p.id.clone()),
+                // TODO: parent: self.parent.back_mut().map(|p| p.id.clone()),
                 bounds,
                 properties,
                 children: vec![],
@@ -84,10 +83,7 @@ pub fn map() -> impl Operation<Map> {
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<Map>),
         ) {
             let id = id.cloned().unwrap_or(widget::Id::unique());
-            let container = Container {
-                id: id.clone(),
-                children: vec![],
-            };
+            let container = Container { children: vec![] };
 
             self.parent.push_back(container);
             operate_on_children(self);
@@ -100,7 +96,7 @@ pub fn map() -> impl Operation<Map> {
 
         fn finish(&self) -> Outcome<Map> {
             let map = Map {
-                root: self.root.clone(),
+                // TODO: root: self.root.clone(),
                 elements: self.elements.clone(),
             };
 

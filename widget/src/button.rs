@@ -293,7 +293,7 @@ where
     ) {
         let state = tree.state.downcast_mut::<State>();
 
-        // operation.inspectable(None, layout.bounds(), state);
+        operation.inspectable(None, layout.bounds(), state);
         operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],

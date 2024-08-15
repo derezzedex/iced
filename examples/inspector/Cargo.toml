@@ -2,11 +2,9 @@
 name = "inspector"
 version = "0.1.0"
 authors = ["Richard Custodio <richardcustodio@pm.me>"]
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
+edition = "2021"
 publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["advanced"]
+iced.features = ["advanced", "canvas"]

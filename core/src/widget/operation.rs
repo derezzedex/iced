@@ -79,6 +79,15 @@ where
         self.as_mut().container(id, bounds, operate_on_children);
     }
 
+    fn inspectable(
+        &mut self,
+        id: Option<&Id>,
+        bounds: Rectangle,
+        state: &mut dyn Inspectable,
+    ) {
+        self.as_mut().inspectable(id, bounds, state)
+    }
+
     fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
         self.as_mut().focusable(state, id);
     }
@@ -159,6 +168,15 @@ where
             self.operation.container(id, bounds, &mut |operation| {
                 operate_on_children(&mut BlackBox { operation });
             });
+        }
+
+        fn inspectable(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn Inspectable,
+        ) {
+            self.operation.inspectable(id, bounds, state)
         }
 
         fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
@@ -295,6 +313,15 @@ where
             MapRef { operation }.container(id, bounds, operate_on_children);
         }
 
+        fn inspectable(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn Inspectable,
+        ) {
+            self.operation.inspectable(id, bounds, state)
+        }
+
         fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
             self.operation.focusable(state, id);
         }
@@ -379,6 +406,15 @@ where
             self.operation.container(id, bounds, &mut |operation| {
                 operate_on_children(&mut black_box(operation));
             });
+        }
+
+        fn inspectable(
+            &mut self,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            state: &mut dyn Inspectable,
+        ) {
+            self.operation.inspectable(id, bounds, state)
         }
 
         fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {

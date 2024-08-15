@@ -258,7 +258,11 @@ where
             }
         }
 
-        operation.inspectable(None, layout.bounds(), &mut State as &mut dyn Inspectable);
+        operation.inspectable(
+            None,
+            layout.bounds(),
+            &mut State as &mut dyn Inspectable,
+        );
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children
                 .iter()
