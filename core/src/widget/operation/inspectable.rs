@@ -5,6 +5,7 @@ use crate::widget;
 use crate::widget::operation::Outcome;
 use crate::widget::Operation;
 use crate::Rectangle;
+use crate::Size;
 
 use rustc_hash::FxHashMap;
 
@@ -35,6 +36,12 @@ pub struct Element {
     pub bounds: Rectangle,
     pub properties: Properties,
     children: Vec<widget::Id>,
+}
+
+impl Element {
+    pub fn size(&self) -> Size {
+        self.bounds.size()
+    }
 }
 
 pub fn map() -> impl Operation<Map> {

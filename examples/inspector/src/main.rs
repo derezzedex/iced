@@ -92,45 +92,55 @@ impl canvas::Program<Message> for Overlay {
         renderer: &iced::Renderer,
         _theme: &iced::Theme,
         bounds: iced::Rectangle,
-        _cursor: iced::advanced::mouse::Cursor,
+        cursor: iced::advanced::mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
-        let bounds = self.cache.draw(renderer, bounds.size(), |frame| {
-            for widget in self.map.widgets() {
-                let path = canvas::Path::rectangle(
-                    widget.bounds.position(),
-                    widget.bounds.size(),
-                );
+        let mut frame = canvas::Frame::new(renderer, bounds.size());
 
-                frame.stroke(
-                    &path,
-                    canvas::Stroke::default()
-                        .with_color(HIGHLIGHT)
-                        .with_width(2.0),
-                );
+        if let Some(mouse) = cursor.position() {
+            let hovered = self
+                .map
+                .widgets()
+                .filter(|el| el.bounds.contains(mouse))
+                .min_by(|a, b| a.size().partial_cmp(&b.size()).unwrap());
 
-                let padding = iced::Vector::new(1.0, 1.0);
-
-                let content = widget.properties.name.clone();
-                let content_width = content.len() as f32 * 7.5;
-
-                let name = canvas::Text {
-                    content,
-                    position: widget.bounds.position() + padding,
-                    size: iced::Pixels(12.0),
-                    color: iced::Color::WHITE,
-                    font: iced::Font::MONOSPACE,
-                    ..Default::default()
-                };
-
-                frame.fill_text(name);
-                frame.fill_rectangle(
-                    widget.bounds.position() + padding,
-                    iced::Size::new(content_width, 16.0),
-                    HIGHLIGHT,
-                );
+            if let Some(hovered) = hovered {
+                highlight(hovered, &mut frame);
             }
-        });
+        }
 
-        vec![bounds]
+        vec![frame.into_geometry()]
     }
+}
+
+fn highlight(widget: &inspectable::Element, frame: &mut canvas::Frame) {
+    let path =
+        canvas::Path::rectangle(widget.bounds.position(), widget.bounds.size());
+
+    frame.stroke(
+        &path,
+        canvas::Stroke::default()
+            .with_color(HIGHLIGHT)
+            .with_width(2.0),
+    );
+
+    let padding = iced::Vector::new(1.0, 1.0);
+
+    let content = widget.properties.name.clone();
+    let content_width = content.len() as f32 * 7.5;
+
+    let name = canvas::Text {
+        content,
+        position: widget.bounds.position() + padding,
+        size: iced::Pixels(12.0),
+        color: iced::Color::WHITE,
+        font: iced::Font::MONOSPACE,
+        ..Default::default()
+    };
+
+    frame.fill_text(name);
+    frame.fill_rectangle(
+        widget.bounds.position() + padding,
+        iced::Size::new(content_width, 16.0),
+        HIGHLIGHT,
+    );
 }
