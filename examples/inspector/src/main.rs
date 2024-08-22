@@ -125,6 +125,13 @@ fn highlight(widget: &inspectable::Element, frame: &mut canvas::Frame) {
 
     let padding = iced::Vector::new(1.0, 1.0);
 
+    println!(
+        "{}@{}:{}:{}",
+        widget.properties.name,
+        widget.properties.location.file(),
+        widget.properties.location.line(),
+        widget.properties.location.column()
+    );
     let content = widget.properties.name.clone();
     let content_width = content.len() as f32 * 7.5;
 

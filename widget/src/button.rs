@@ -33,6 +33,8 @@ use crate::core::{
     Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
+use core::panic::Location;
+
 /// A generic widget that produces a message when pressed.
 ///
 /// # Example
@@ -77,6 +79,7 @@ where
     Theme: Catalog,
 {
     content: Element<'a, Message, Theme, Renderer>,
+    caller: Location<'static>,
     on_press: Option<OnPress<'a, Message>>,
     width: Length,
     height: Length,
@@ -105,6 +108,7 @@ where
     Theme: Catalog,
 {
     /// Creates a new [`Button`] with the given content.
+    #[track_caller]
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -113,6 +117,7 @@ where
 
         Button {
             content,
+            caller: Location::caller().clone(),
             on_press: None,
             width: size.width.fluid(),
             height: size.height.fluid(),
@@ -199,7 +204,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct State {
     is_pressed: bool,
     properties: inspectable::Properties,
@@ -215,7 +220,7 @@ impl State {
     fn new(properties: inspectable::Properties) -> Self {
         Self {
             properties,
-            ..Default::default()
+            is_pressed: false,
         }
     }
 }
@@ -240,9 +245,7 @@ where
     fn state(&self) -> tree::State {
         let properties = inspectable::Properties {
             name: String::from("Button"),
-            // size: Some(self.size()),
-            // padding: Some(self.padding),
-            ..Default::default()
+            location: self.caller,
         };
 
         tree::State::new(State::new(properties))

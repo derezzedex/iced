@@ -831,6 +831,7 @@ where
 ///     button("Press me!").on_press(Message::ButtonPressed).into()
 /// }
 /// ```
+#[track_caller]
 pub fn button<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Button<'a, Message, Theme, Renderer>

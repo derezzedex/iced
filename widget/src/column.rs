@@ -14,6 +14,8 @@ use crate::core::{
     Size, Vector, Widget,
 };
 
+use core::panic::Location;
+
 /// A container that distributes its contents vertically.
 ///
 /// # Example
@@ -46,6 +48,7 @@ pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
     max_width: f32,
     align: Alignment,
     clip: bool,
+    caller: Location<'static>,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
 }
 
@@ -54,16 +57,19 @@ where
     Renderer: crate::core::Renderer,
 {
     /// Creates an empty [`Column`].
+    #[track_caller]
     pub fn new() -> Self {
         Self::from_vec(Vec::new())
     }
 
     /// Creates a [`Column`] with the given capacity.
+    #[track_caller]
     pub fn with_capacity(capacity: usize) -> Self {
         Self::from_vec(Vec::with_capacity(capacity))
     }
 
     /// Creates a [`Column`] with the given elements.
+    #[track_caller]
     pub fn with_children(
         children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -79,6 +85,7 @@ where
     ///
     /// If any of the children have a [`Length::Fill`] strategy, you will need to
     /// call [`Column::width`] or [`Column::height`] accordingly.
+    #[track_caller]
     pub fn from_vec(
         children: Vec<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -90,6 +97,7 @@ where
             max_width: f32::INFINITY,
             align: Alignment::Start,
             clip: false,
+            caller: Location::caller().clone(),
             children,
         }
     }
@@ -248,20 +256,23 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        struct State;
+        struct State(Properties);
 
         impl Inspectable for State {
             fn properties(&self) -> Properties {
-                Properties {
-                    name: String::from("Column"),
-                }
+                self.0.clone()
             }
         }
+
+        let mut state = State(Properties {
+            name: String::from("Column"),
+            location: self.caller,
+        });
 
         operation.inspectable(
             None,
             layout.bounds(),
-            &mut State as &mut dyn Inspectable,
+            &mut state as &mut dyn Inspectable,
         );
         operation.container(None, layout.bounds(), &mut |operation| {
             self.children

@@ -9,9 +9,12 @@ use crate::Size;
 
 use rustc_hash::FxHashMap;
 
-#[derive(Debug, Clone, Default)]
+use core::panic::Location;
+
+#[derive(Debug, Clone)]
 pub struct Properties {
     pub name: String,
+    pub location: Location<'static>,
 }
 
 pub trait Inspectable {
@@ -30,7 +33,7 @@ impl Map {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct Element {
     // TODO: parent: Option<widget::Id>,
     pub bounds: Rectangle,
