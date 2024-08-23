@@ -11,7 +11,7 @@ use rustc_hash::FxHashMap;
 
 use core::panic::Location;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Properties {
     pub name: String,
     pub location: Location<'static>,
@@ -33,7 +33,7 @@ impl Map {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Element {
     // TODO: parent: Option<widget::Id>,
     pub bounds: Rectangle,
