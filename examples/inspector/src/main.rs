@@ -266,7 +266,10 @@ impl Editor {
                 Task::none()
             }
             EditorMessage::EditorAction(action) => {
-                println!("{action:?}");
+                if matches!(action, text_editor::Action::Scroll { .. }) {
+                    self.content.perform(action);
+                }
+                
                 Task::none()
             }
             EditorMessage::FileOpened(content) => {
