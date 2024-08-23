@@ -882,49 +882,51 @@ where
 
         let translation = text_bounds.position() - Point::ORIGIN;
 
-        if let Some(focus) = state.focus.as_ref() {
-            match internal.editor.cursor() {
-                Cursor::Caret(position) if focus.is_cursor_visible() => {
-                    let cursor =
-                        Rectangle::new(
-                            position + translation,
-                            Size::new(
-                                1.0,
-                                self.line_height
-                                    .to_absolute(self.text_size.unwrap_or_else(
-                                        || renderer.default_size(),
-                                    ))
-                                    .into(),
-                            ),
-                        );
+        match internal.editor.cursor() {
+            Cursor::Caret(position)
+                if state
+                    .focus
+                    .as_ref()
+                    .is_some_and(Focus::is_cursor_visible) =>
+            {
+                let cursor = Rectangle::new(
+                    position + translation,
+                    Size::new(
+                        1.0,
+                        self.line_height
+                            .to_absolute(
+                                self.text_size
+                                    .unwrap_or_else(|| renderer.default_size()),
+                            )
+                            .into(),
+                    ),
+                );
 
-                    if let Some(clipped_cursor) =
-                        text_bounds.intersection(&cursor)
-                    {
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: clipped_cursor,
-                                ..renderer::Quad::default()
-                            },
-                            style.value,
-                        );
-                    }
+                if let Some(clipped_cursor) = text_bounds.intersection(&cursor)
+                {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: clipped_cursor,
+                            ..renderer::Quad::default()
+                        },
+                        style.value,
+                    );
                 }
-                Cursor::Selection(ranges) => {
-                    for range in ranges.into_iter().filter_map(|range| {
-                        text_bounds.intersection(&(range + translation))
-                    }) {
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: range,
-                                ..renderer::Quad::default()
-                            },
-                            style.selection,
-                        );
-                    }
-                }
-                Cursor::Caret(_) => {}
             }
+            Cursor::Selection(ranges) => {
+                for range in ranges.into_iter().filter_map(|range| {
+                    text_bounds.intersection(&(range + translation))
+                }) {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: range,
+                            ..renderer::Quad::default()
+                        },
+                        style.selection,
+                    );
+                }
+            }
+            Cursor::Caret(_) => {}
         }
     }
 
