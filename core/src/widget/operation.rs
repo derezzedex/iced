@@ -58,7 +58,13 @@ pub trait Operation<T = ()>: Send {
     fn text_input(&mut self, _state: &mut dyn TextInput, _id: Option<&Id>) {}
 
     /// Operates on a custom widget with some state.
-    fn custom(&mut self, _state: &mut dyn Any, _id: Option<&Id>) {}
+    fn custom(
+        &mut self,
+        _state: &mut dyn Any,
+        _id: Option<&Id>,
+        _bounds: Rectangle,
+    ) {
+    }
 
     /// Finishes the [`Operation`] and returns its [`Outcome`].
     fn finish(&self) -> Outcome<T> {
@@ -113,8 +119,13 @@ where
         self.as_mut().text_input(state, id);
     }
 
-    fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
-        self.as_mut().custom(state, id);
+    fn custom(
+        &mut self,
+        state: &mut dyn Any,
+        id: Option<&Id>,
+        bounds: Rectangle,
+    ) {
+        self.as_mut().custom(state, id, bounds);
     }
 
     fn finish(&self) -> Outcome<O> {
@@ -204,8 +215,13 @@ where
             self.operation.text_input(state, id);
         }
 
-        fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
-            self.operation.custom(state, id);
+        fn custom(
+            &mut self,
+            state: &mut dyn Any,
+            id: Option<&Id>,
+            bounds: Rectangle,
+        ) {
+            self.operation.custom(state, id, bounds);
         }
 
         fn finish(&self) -> Outcome<O> {
@@ -303,8 +319,13 @@ where
                     self.operation.text_input(state, id);
                 }
 
-                fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
-                    self.operation.custom(state, id);
+                fn custom(
+                    &mut self,
+                    state: &mut dyn Any,
+                    id: Option<&Id>,
+                    bounds: Rectangle,
+                ) {
+                    self.operation.custom(state, id, bounds);
                 }
             }
 
@@ -347,8 +368,13 @@ where
             self.operation.text_input(state, id);
         }
 
-        fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
-            self.operation.custom(state, id);
+        fn custom(
+            &mut self,
+            state: &mut dyn Any,
+            id: Option<&Id>,
+            bounds: Rectangle,
+        ) {
+            self.operation.custom(state, id, bounds);
         }
 
         fn finish(&self) -> Outcome<B> {
@@ -442,8 +468,13 @@ where
             self.operation.text_input(state, id);
         }
 
-        fn custom(&mut self, state: &mut dyn std::any::Any, id: Option<&Id>) {
-            self.operation.custom(state, id);
+        fn custom(
+            &mut self,
+            state: &mut dyn std::any::Any,
+            id: Option<&Id>,
+            bounds: Rectangle,
+        ) {
+            self.operation.custom(state, id, bounds);
         }
 
         fn finish(&self) -> Outcome<B> {
