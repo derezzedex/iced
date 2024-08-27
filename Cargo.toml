@@ -68,6 +68,8 @@ auto-detect-theme = ["iced_core/auto-detect-theme"]
 # Enables strict assertions for debugging purposes at the expense of performance
 strict-assertions = ["iced_renderer/strict-assertions"]
 
+inspector = ["iced_inspector"]
+
 [dependencies]
 iced_core.workspace = true
 iced_futures.workspace = true
@@ -78,6 +80,9 @@ iced_winit.workspace = true
 
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
+
+iced_inspector.workspace = true
+iced_inspector.optional = true
 
 thiserror.workspace = true
 
@@ -109,6 +114,7 @@ members = [
     "futures",
     "graphics",
     "highlighter",
+    "inspector",
     "renderer",
     "runtime",
     "tiny_skia",
@@ -135,6 +141,7 @@ iced_core = { version = "0.14.0-dev", path = "core" }
 iced_futures = { version = "0.14.0-dev", path = "futures" }
 iced_graphics = { version = "0.14.0-dev", path = "graphics" }
 iced_highlighter = { version = "0.14.0-dev", path = "highlighter" }
+iced_inspector = { version = "0.14.0-dev", path = "inspector" }
 iced_renderer = { version = "0.14.0-dev", path = "renderer" }
 iced_runtime = { version = "0.14.0-dev", path = "runtime" }
 iced_tiny_skia = { version = "0.14.0-dev", path = "tiny_skia" }

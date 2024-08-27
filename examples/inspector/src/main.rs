@@ -1,6 +1,7 @@
 use iced::advanced::widget;
-use iced::advanced::widget::operation::inspectable;
-use iced::widget::{button, canvas, column, stack, text, text_editor};
+use iced::inspector;
+use iced::inspector::widget::button;
+use iced::widget::{canvas, column, stack, text, text_editor};
 use iced::{highlighter, mouse, Center, Element, Fill, Task};
 
 use std::path::{Path, PathBuf};
@@ -25,7 +26,7 @@ enum Message {
     Increment,
     Decrement,
     WindowResized,
-    Inspected(inspectable::Map),
+    Inspected(inspector::Map),
     Editor(EditorMessage),
 }
 
@@ -33,7 +34,7 @@ impl Inspector {
     fn new() -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            widget::operate(inspectable::map()).map(Message::Inspected),
+            widget::operate(inspector::map()).map(Message::Inspected),
         )
     }
     fn update(&mut self, message: Message) -> iced::Task<Message> {
@@ -46,7 +47,7 @@ impl Inspector {
             }
             Message::WindowResized => {
                 self.overlay.take();
-                return widget::operate(inspectable::map())
+                return widget::operate(inspector::map())
                     .map(Message::Inspected);
             }
             Message::Inspected(widgets) => {
@@ -92,12 +93,12 @@ impl Inspector {
 }
 
 struct Overlay {
-    map: inspectable::Map,
+    map: inspector::Map,
 }
 
 #[derive(Default)]
 struct State {
-    hovered: Option<inspectable::Element>,
+    hovered: Option<inspector::Element>,
     cache: canvas::Cache,
 }
 
@@ -154,7 +155,7 @@ impl canvas::Program<Message> for Overlay {
     }
 }
 
-fn highlight(widget: &inspectable::Element, frame: &mut canvas::Frame) {
+fn highlight(widget: &inspector::Element, frame: &mut canvas::Frame) {
     let path =
         canvas::Path::rectangle(widget.bounds.position(), widget.bounds.size());
 
@@ -196,7 +197,7 @@ fn highlight(widget: &inspectable::Element, frame: &mut canvas::Frame) {
 
 struct Editor {
     file: Option<String>,
-    highlighted: Option<inspectable::Element>,
+    highlighted: Option<inspector::Element>,
     content: text_editor::Content,
     theme: highlighter::Theme,
 }
@@ -214,7 +215,7 @@ impl Default for Editor {
 
 #[derive(Debug, Clone)]
 enum EditorMessage {
-    Hovered(Option<inspectable::Element>),
+    Hovered(Option<inspector::Element>),
     FileOpened(Arc<String>),
     EditorAction(text_editor::Action),
 }
@@ -269,7 +270,7 @@ impl Editor {
                 if matches!(action, text_editor::Action::Scroll { .. }) {
                     self.content.perform(action);
                 }
-                
+
                 Task::none()
             }
             EditorMessage::FileOpened(content) => {

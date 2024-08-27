@@ -33,8 +33,6 @@ use crate::core::{
     Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
-use core::panic::Location;
-
 /// A generic widget that produces a message when pressed.
 ///
 /// # Example
@@ -79,7 +77,6 @@ where
     Theme: Catalog,
 {
     content: Element<'a, Message, Theme, Renderer>,
-    caller: Location<'static>,
     on_press: Option<OnPress<'a, Message>>,
     width: Length,
     height: Length,
@@ -108,7 +105,6 @@ where
     Theme: Catalog,
 {
     /// Creates a new [`Button`] with the given content.
-    #[track_caller]
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -117,7 +113,6 @@ where
 
         Button {
             content,
-            caller: Location::caller().clone(),
             on_press: None,
             width: size.width.fluid(),
             height: size.height.fluid(),
@@ -204,31 +199,10 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
-struct State {
+#[derive(Debug, Clone, PartialEq, Default)]
+#[allow(missing_docs)]
+pub struct State {
     is_pressed: bool,
-    properties: inspectable::Properties,
-}
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.is_pressed == other.is_pressed
-    }
-}
-
-impl State {
-    fn new(properties: inspectable::Properties) -> Self {
-        Self {
-            properties,
-            is_pressed: false,
-        }
-    }
-}
-
-impl crate::core::widget::operation::Inspectable for State {
-    fn properties(&self) -> inspectable::Properties {
-        self.properties.clone()
-    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -243,12 +217,7 @@ where
     }
 
     fn state(&self) -> tree::State {
-        let properties = inspectable::Properties {
-            name: String::from("Button"),
-            location: self.caller,
-        };
-
-        tree::State::new(State::new(properties))
+        tree::State::new(State::default())
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -294,9 +263,6 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        let state = tree.state.downcast_mut::<State>();
-
-        operation.inspectable(None, layout.bounds(), state);
         operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],
