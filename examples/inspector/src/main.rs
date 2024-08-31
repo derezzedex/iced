@@ -1,8 +1,11 @@
 use iced::advanced::widget;
-use iced::inspector;
 use iced::inspector::widget::button;
-use iced::widget::{canvas, column, stack, text, text_editor};
-use iced::{highlighter, mouse, Center, Element, Fill, Task};
+use iced::widget::{
+    canvas, column, container, horizontal_space, row, scrollable, stack, text,
+    text_editor, Column,
+};
+use iced::{highlighter, mouse, Center, Color, Element, Fill, Length, Task};
+use iced::{inspector, Padding};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -63,7 +66,7 @@ impl Inspector {
 
     fn view(&self) -> Element<Message> {
         let content = column![
-            button("Increment").on_press(Message::Increment),
+            button("Increment").padding(0).on_press(Message::Increment),
             text(self.value).size(50),
             button("Decrement").on_press(Message::Decrement)
         ]
@@ -102,7 +105,11 @@ struct State {
     cache: canvas::Cache,
 }
 
-const HIGHLIGHT: iced::Color = iced::Color::from_rgb(1.0, 0.0, 0.0);
+const DARK_PURPLE: Color =
+    Color::from_rgb(73.0 / 255.0, 65.0 / 255.0, 136.0 / 255.0);
+const LIGHT_PINK: Color = Color::from_rgb(1.0, 128.0 / 255.0, 238.0 / 255.0);
+const BLUE: Color = Color::from_rgb(0.0, 143.0 / 255.0, 214.0 / 255.0);
+const LIGHT_BLUE: Color = Color::from_rgb(120.0 / 255.0, 196.0 / 255.0, 1.0);
 
 impl canvas::Program<Message> for Overlay {
     type State = State;
@@ -147,7 +154,23 @@ impl canvas::Program<Message> for Overlay {
     ) -> Vec<canvas::Geometry> {
         let frame = state.cache.draw(renderer, bounds.size(), |frame| {
             if let Some(hovered) = &state.hovered {
-                highlight(hovered, frame);
+                if let Some(padding) = hovered.properties.padding {
+                    for quad in padding_quads(hovered.bounds, padding) {
+                        frame.fill(&quad, DARK_PURPLE.scale_alpha(0.75));
+                    }
+                }
+
+                let mut blue_dashed =
+                    canvas::Stroke::default().with_width(1.0).with_color(BLUE);
+
+                blue_dashed.line_dash = canvas::stroke::LineDash {
+                    segments: &[5.0, 3.0],
+                    offset: 0,
+                };
+
+                for line in bounding_lines(bounds, hovered.bounds) {
+                    frame.stroke(&line, blue_dashed);
+                }
             }
         });
 
@@ -155,37 +178,64 @@ impl canvas::Program<Message> for Overlay {
     }
 }
 
-fn highlight(widget: &inspector::Element, frame: &mut canvas::Frame) {
-    let path =
-        canvas::Path::rectangle(widget.bounds.position(), widget.bounds.size());
+fn padding_quads(
+    element: iced::Rectangle,
+    padding: iced::Padding,
+) -> [canvas::Path; 4] {
+    let bottom = element.position()
+        + iced::Vector::new(0.0, element.height - padding.bottom);
+    let left = element.position() + iced::Vector::new(0.0, padding.top);
+    let right = element.position()
+        + iced::Vector::new(element.width - padding.right, padding.top);
 
-    frame.stroke(
-        &path,
-        canvas::Stroke::default()
-            .with_color(HIGHLIGHT)
-            .with_width(2.0),
-    );
+    [
+        canvas::Path::rectangle(
+            element.position(),
+            iced::Size::new(element.width, padding.top),
+        ),
+        canvas::Path::rectangle(
+            bottom,
+            iced::Size::new(element.width, padding.bottom),
+        ),
+        canvas::Path::rectangle(
+            left,
+            iced::Size::new(
+                padding.left,
+                element.height - padding.top - padding.bottom,
+            ),
+        ),
+        canvas::Path::rectangle(
+            right,
+            iced::Size::new(
+                padding.right,
+                element.height - padding.top - padding.bottom,
+            ),
+        ),
+    ]
+}
 
-    let padding = iced::Vector::new(1.0, 1.0);
-
-    let content = widget.properties.name.clone();
-    let content_width = content.len() as f32 * 7.5;
-
-    let name = canvas::Text {
-        content,
-        position: widget.bounds.position() + padding,
-        size: iced::Pixels(12.0),
-        color: iced::Color::WHITE,
-        font: iced::Font::MONOSPACE,
-        ..Default::default()
-    };
-
-    frame.fill_text(name);
-    frame.fill_rectangle(
-        widget.bounds.position() + padding,
-        iced::Size::new(content_width, 16.0),
-        HIGHLIGHT,
-    );
+fn bounding_lines(
+    bounds: iced::Rectangle,
+    element: iced::Rectangle,
+) -> [canvas::Path; 4] {
+    [
+        canvas::Path::line(
+            iced::Point::new(element.x, bounds.y),
+            iced::Point::new(element.x, bounds.height),
+        ),
+        canvas::Path::line(
+            iced::Point::new(element.x + element.width, bounds.y),
+            iced::Point::new(element.x + element.width, bounds.height),
+        ),
+        canvas::Path::line(
+            iced::Point::new(bounds.x, element.y),
+            iced::Point::new(bounds.width, element.y),
+        ),
+        canvas::Path::line(
+            iced::Point::new(bounds.x, element.y + element.height),
+            iced::Point::new(bounds.width, element.y + element.height),
+        ),
+    ]
 }
 
 struct Editor {
@@ -218,17 +268,20 @@ impl Editor {
         match message {
             EditorMessage::Hovered(Some(element)) => {
                 let file = element.properties.location.file().to_string();
+                let location = element.properties.location;
+
                 if self.highlighted.as_ref().is_some_and(|hl| {
                     hl.properties.location == element.properties.location
                 }) {
                     return Task::none();
                 }
 
+                self.highlighted = Some(element);
+
                 if self.file.as_ref().is_some_and(|current| current == &file) {
                     self.content.perform(text_editor::Action::Move(
                         text_editor::Motion::DocumentStart,
                     ));
-                    let location = element.properties.location;
 
                     for _ in 1..location.line() {
                         self.content.perform(text_editor::Action::Move(
@@ -275,13 +328,69 @@ impl Editor {
     }
 
     fn view(&self) -> Element<EditorMessage> {
-        text_editor(&self.content)
+        let text_editor = text_editor(&self.content)
             .font(iced::Font::MONOSPACE)
             .size(12)
             .on_action(EditorMessage::EditorAction)
-            .highlight("rs", self.theme)
-            .into()
+            .highlight("rs", self.theme);
+
+        let properties: iced::Element<EditorMessage> = if let Some(element) =
+            &self.highlighted
+        {
+            properties(element)
+        } else {
+            container(text!("Highlight some widget to see it's properties."))
+                .padding(16)
+                .into()
+        };
+
+        row![
+            container(text_editor).width(Length::FillPortion(2)),
+            scrollable(properties).width(Fill)
+        ]
+        .into()
     }
+}
+
+fn properties<'a, Message: 'a>(
+    element: &'a inspector::Element,
+) -> Element<'a, Message> {
+    column![
+        text("Properties").size(18),
+        row![
+            column![text("name").color(LIGHT_BLUE), text("size").color(LIGHT_BLUE), text("padding").color(LIGHT_BLUE), text("clip").color(LIGHT_BLUE),],
+            horizontal_space().width(Fill),
+            column![
+                text(&element.properties.name).color(LIGHT_PINK),
+                text!("{{ width: {:?}, height: {:?} }}", element.properties.size.width, element.properties.size.height).color(LIGHT_PINK),
+                element.properties.padding.map(|Padding { top, left, right, bottom}| text!("{{ top: {top}, left: {left}, right: {right}, bottom: {bottom} }}")).unwrap_or(text("None")).color(LIGHT_PINK),
+                element.properties.clip.map(text).unwrap_or(text("None")).color(LIGHT_PINK),
+            ],
+        ],
+        text("Messages").size(18),
+        row![
+            Column::with_children(
+                element
+                    .properties
+                    .handlers
+                    .keys()
+                    .map(|name| text(name).color(LIGHT_BLUE))
+                    .map(Element::from)
+            ),
+            horizontal_space().width(Fill),
+            Column::with_children(
+                element
+                    .properties
+                    .handlers
+                    .values()
+                    .map(|message| text(message).color(LIGHT_PINK))
+                    .map(Element::from)
+            ),
+        ],
+    ]
+    .spacing(8)
+    .padding(16)
+    .into()
 }
 
 async fn open_file(path: impl Into<PathBuf>) -> Arc<String> {

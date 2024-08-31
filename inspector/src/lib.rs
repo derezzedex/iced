@@ -7,15 +7,23 @@ use std::collections::VecDeque;
 
 use iced_core::widget::operation::Outcome;
 use iced_core::widget::Operation;
+use iced_core::Length;
+use iced_core::Padding;
 use iced_core::Rectangle;
 use iced_core::Size;
 
 use rustc_hash::FxHashMap;
 
+pub type HandlerMap = FxHashMap<String, String>;
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Properties {
     pub name: String,
     pub location: Location<'static>,
+    pub padding: Option<Padding>,
+    pub size: Size<Length>,
+    pub clip: Option<bool>,
+    pub handlers: HandlerMap,
 }
 
 pub trait Inspectable {

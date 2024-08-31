@@ -10,7 +10,8 @@ pub fn button<'a, Message, Theme, Renderer>(
 ) -> Button<'a, Message, Theme, Renderer>
 where
     Theme: iced_widget::button::Catalog + 'a,
-    Renderer: iced_core::Renderer,
+    Renderer: iced_core::Renderer + 'a,
+    Message: std::fmt::Debug + Clone + 'a,
 {
     Button::new(content)
 }
