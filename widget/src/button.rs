@@ -33,6 +33,9 @@ use crate::core::{
     Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
+#[cfg(feature = "inspector")]
+use crate::core::widget::operation::{self, inspectable};
+
 /// A generic widget that produces a message when pressed.
 ///
 /// # Example
@@ -83,6 +86,8 @@ where
     padding: Padding,
     clip: bool,
     class: Theme::Class<'a>,
+    #[cfg(feature = "inspector")]
+    location: std::panic::Location<'static>,
 }
 
 enum OnPress<'a, Message> {
@@ -105,6 +110,7 @@ where
     Theme: Catalog,
 {
     /// Creates a new [`Button`] with the given content.
+    #[track_caller]
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -119,6 +125,8 @@ where
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),
+            #[cfg(feature = "inspector")]
+            location: *std::panic::Location::caller(),
         }
     }
 
@@ -199,10 +207,26 @@ where
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone)]
 #[allow(missing_docs)]
 pub struct State {
     is_pressed: bool,
+
+    #[cfg(feature = "inspector")]
+    properties: inspectable::Properties,
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.is_pressed == other.is_pressed
+    }
+}
+
+#[cfg(feature = "inspector")]
+impl operation::Inspectable for State {
+    fn properties(&self) -> &inspectable::Properties {
+        &self.properties
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -217,7 +241,37 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::default())
+        #[cfg(not(feature = "inspector"))]
+        let state = State { is_pressed: false };
+
+        #[cfg(feature = "inspector")]
+        let state = {
+            #[derive(inspectable::Serialize, inspectable::Deserialize)]
+            struct Properties {
+                padding: Padding,
+                width: Length,
+                height: Length,
+                clip: bool,
+            }
+
+            let specific = inspectable::Specific::serialize(Properties {
+                padding: self.padding,
+                width: self.width,
+                height: self.height,
+                clip: self.clip,
+            });
+
+            State {
+                properties: inspectable::Properties {
+                    name: String::from("Button"),
+                    location: self.location,
+                    specific,
+                },
+                is_pressed: false,
+            }
+        };
+
+        tree::State::new(state)
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -263,6 +317,13 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
+        #[cfg(feature = "inspector")]
+        operation.inspectable(
+            tree.state.downcast_mut::<State>(),
+            None,
+            layout.bounds(),
+        );
+
         operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],

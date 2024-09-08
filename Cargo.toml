@@ -67,8 +67,8 @@ fira-sans = ["iced_renderer/fira-sans"]
 auto-detect-theme = ["iced_core/auto-detect-theme"]
 # Enables strict assertions for debugging purposes at the expense of performance
 strict-assertions = ["iced_renderer/strict-assertions"]
-
-inspector = ["iced_inspector"]
+# Enables experimental inspector support
+inspector = ["iced_core/inspector", "iced_widget/inspector"]
 
 [dependencies]
 iced_core.workspace = true
@@ -80,9 +80,6 @@ iced_winit.workspace = true
 
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
-
-iced_inspector.workspace = true
-iced_inspector.optional = true
 
 thiserror.workspace = true
 
@@ -114,7 +111,6 @@ members = [
     "futures",
     "graphics",
     "highlighter",
-    "inspector",
     "renderer",
     "runtime",
     "tiny_skia",
@@ -175,6 +171,8 @@ qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.42"
 rustc-hash = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
 smol = "1.0"
 smol_str = "0.2"
 softbuffer = "0.4"

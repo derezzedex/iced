@@ -1,6 +1,9 @@
 //! Space stuff around the perimeter.
 use crate::{Pixels, Size};
 
+#[cfg(feature = "inspector")]
+use crate::widget::operation::inspectable;
+
 /// An amount of space to pad for each side of a box
 ///
 /// You can leverage the `From` trait to build [`Padding`] conveniently:
@@ -33,6 +36,7 @@ use crate::{Pixels, Size};
 /// let widget = Widget::new().padding([10, 20]);        // top/bottom, left/right
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "inspector", derive(inspectable::Serialize, inspectable::Deserialize))]
 pub struct Padding {
     /// Top padding
     pub top: f32,

@@ -1,24 +1,57 @@
 #![allow(missing_docs)]
-use std::collections::VecDeque;
-
 use crate::widget;
 use crate::widget::operation::Outcome;
 use crate::widget::Operation;
 use crate::Rectangle;
 use crate::Size;
 
+use core::panic::Location;
+use std::collections::VecDeque;
+
 use rustc_hash::FxHashMap;
 
-use core::panic::Location;
+pub use serde::{Serialize, Deserialize};
+pub use serde_json::to_string_pretty;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
+pub struct Specific(serde_json::Value);
+
+impl Specific {
+    pub fn serialize<T: serde::Serialize>(content: T) -> Self {
+        Self(
+            serde_json::to_value(content).expect("failed to serialize content"),
+        )
+    }
+
+    pub fn deserialize<T>(self) -> T
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        serde_json::from_value(self.0).expect("failed to deserialize content")
+    }
+
+    pub fn find_and_get<T>(&self) -> Option<T>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        self.fields()
+            .values()
+            .find_map(|v| serde_json::from_value(v.clone()).ok())
+    }
+
+    pub fn fields(&self) -> &serde_json::Map<String, serde_json::Value> {
+        self.0.as_object().expect("failed to obtain json object")
+    }
+}
+#[derive(Debug, Clone)]
 pub struct Properties {
     pub name: String,
     pub location: Location<'static>,
+    pub specific: Specific,
 }
 
 pub trait Inspectable {
-    fn properties(&self) -> Properties;
+    fn properties(&self) -> &Properties;
 }
 
 #[derive(Debug, Clone)]
@@ -33,7 +66,7 @@ impl Map {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Element {
     // TODO: parent: Option<widget::Id>,
     pub bounds: Rectangle,
@@ -64,9 +97,9 @@ pub fn map() -> impl Operation<Map> {
     impl Operation<Map> for InspectableMap {
         fn inspectable(
             &mut self,
+            state: &mut dyn Inspectable,
             id: Option<&widget::Id>,
             bounds: Rectangle,
-            state: &mut dyn Inspectable,
         ) {
             let id = id.cloned().unwrap_or(widget::Id::unique());
 
@@ -79,7 +112,7 @@ pub fn map() -> impl Operation<Map> {
             let element = Element {
                 // TODO: parent: self.parent.back_mut().map(|p| p.id.clone()),
                 bounds,
-                properties,
+                properties: properties.clone(),
                 children: vec![],
             };
 

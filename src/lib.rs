@@ -486,9 +486,6 @@ pub use iced_highlighter as highlighter;
 #[cfg(feature = "wgpu")]
 pub use iced_renderer::wgpu::wgpu;
 
-#[cfg(feature = "inspector")]
-pub use iced_inspector as inspector;
-
 mod error;
 mod program;
 

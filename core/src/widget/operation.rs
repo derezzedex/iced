@@ -3,6 +3,12 @@ pub mod focusable;
 pub mod scrollable;
 pub mod text_input;
 
+#[cfg(feature = "inspector")]
+pub mod inspectable;
+
+#[cfg(feature = "inspector")]
+pub use inspectable::Inspectable;
+
 pub use focusable::Focusable;
 pub use scrollable::Scrollable;
 pub use text_input::TextInput;
@@ -45,6 +51,16 @@ pub trait Operation<T = ()>: Send {
 
     /// Operates on a widget that has text input.
     fn text_input(&mut self, _state: &mut dyn TextInput, _id: Option<&Id>) {}
+
+    #[cfg(feature = "inspector")]
+    /// Operates on a widget that can be scrolled.
+    fn inspectable(
+        &mut self,
+        _state: &mut dyn Inspectable,
+        _id: Option<&Id>,
+        _bounds: Rectangle,
+    ) {
+    }
 
     /// Operates on a custom widget with some state.
     fn custom(
@@ -97,6 +113,16 @@ where
 
     fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
         self.as_mut().text_input(state, id);
+    }
+
+    #[cfg(feature = "inspector")]
+    fn inspectable(
+        &mut self,
+        state: &mut dyn Inspectable,
+        id: Option<&Id>,
+        bounds: Rectangle,
+    ) {
+        self.as_mut().inspectable(state, id, bounds);
     }
 
     fn custom(
@@ -184,6 +210,16 @@ where
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
             self.operation.text_input(state, id);
+        }
+
+        #[cfg(feature = "inspector")]
+        fn inspectable(
+            &mut self,
+            state: &mut dyn Inspectable,
+            id: Option<&Id>,
+            bounds: Rectangle,
+        ) {
+            self.operation.inspectable(state, id, bounds);
         }
 
         fn custom(
@@ -281,6 +317,16 @@ where
                     self.operation.text_input(state, id);
                 }
 
+                #[cfg(feature = "inspector")]
+                fn inspectable(
+                    &mut self,
+                    state: &mut dyn Inspectable,
+                    id: Option<&Id>,
+                    bounds: Rectangle,
+                ) {
+                    self.operation.inspectable(state, id, bounds);
+                }
+
                 fn custom(
                     &mut self,
                     state: &mut dyn Any,
@@ -319,6 +365,16 @@ where
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
             self.operation.text_input(state, id);
+        }
+
+        #[cfg(feature = "inspector")]
+        fn inspectable(
+            &mut self,
+            state: &mut dyn Inspectable,
+            id: Option<&Id>,
+            bounds: Rectangle,
+        ) {
+            self.operation.inspectable(state, id, bounds);
         }
 
         fn custom(
@@ -410,6 +466,16 @@ where
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
             self.operation.text_input(state, id);
+        }
+
+        #[cfg(feature = "inspector")]
+        fn inspectable(
+            &mut self,
+            state: &mut dyn Inspectable,
+            id: Option<&Id>,
+            bounds: Rectangle,
+        ) {
+            self.operation.inspectable(state, id, bounds);
         }
 
         fn custom(

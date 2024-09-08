@@ -1,11 +1,13 @@
 use iced::advanced::widget;
-use iced::inspector::widget::button;
+use iced::advanced::widget::operation::inspectable;
+use iced::widget::button;
 use iced::widget::{
-    canvas, column, container, horizontal_space, row, scrollable, stack, text,
+    canvas, column, container, row, scrollable, stack, text,
     text_editor, Column,
 };
-use iced::{highlighter, mouse, Center, Color, Element, Fill, Length, Task};
-use iced::{inspector, Padding};
+use iced::{
+    highlighter, mouse, Center, Color, Element, Fill, Length, Padding, Task,
+};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -29,7 +31,7 @@ enum Message {
     Increment,
     Decrement,
     WindowResized,
-    Inspected(inspector::Map),
+    Inspected(inspectable::Map),
     Editor(EditorMessage),
 }
 
@@ -37,7 +39,7 @@ impl Inspector {
     fn new() -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            widget::operate(inspector::map()).map(Message::Inspected),
+            widget::operate(inspectable::map()).map(Message::Inspected),
         )
     }
     fn update(&mut self, message: Message) -> iced::Task<Message> {
@@ -50,7 +52,7 @@ impl Inspector {
             }
             Message::WindowResized => {
                 self.overlay.take();
-                return widget::operate(inspector::map())
+                return widget::operate(inspectable::map())
                     .map(Message::Inspected);
             }
             Message::Inspected(widgets) => {
@@ -96,12 +98,12 @@ impl Inspector {
 }
 
 struct Overlay {
-    map: inspector::Map,
+    map: inspectable::Map,
 }
 
 #[derive(Default)]
 struct State {
-    hovered: Option<inspector::Element>,
+    hovered: Option<inspectable::Element>,
     cache: canvas::Cache,
 }
 
@@ -154,9 +156,11 @@ impl canvas::Program<Message> for Overlay {
     ) -> Vec<canvas::Geometry> {
         let frame = state.cache.draw(renderer, bounds.size(), |frame| {
             if let Some(hovered) = &state.hovered {
-                if let Some(padding) = hovered.properties.padding {
+                if let Some(padding) =
+                    hovered.properties.specific.find_and_get::<Padding>()
+                {
                     for quad in padding_quads(hovered.bounds, padding) {
-                        frame.fill(&quad, DARK_PURPLE.scale_alpha(0.75));
+                        frame.fill(&quad, DARK_PURPLE.scale_alpha(0.8));
                     }
                 }
 
@@ -240,7 +244,7 @@ fn bounding_lines(
 
 struct Editor {
     file: Option<String>,
-    highlighted: Option<inspector::Element>,
+    highlighted: Option<inspectable::Element>,
     content: text_editor::Content,
     theme: highlighter::Theme,
 }
@@ -258,7 +262,7 @@ impl Default for Editor {
 
 #[derive(Debug, Clone)]
 enum EditorMessage {
-    Hovered(Option<inspector::Element>),
+    Hovered(Option<inspectable::Element>),
     FileOpened(Arc<String>),
     EditorAction(text_editor::Action),
 }
@@ -353,40 +357,25 @@ impl Editor {
 }
 
 fn properties<'a, Message: 'a>(
-    element: &'a inspector::Element,
+    element: &'a inspectable::Element,
 ) -> Element<'a, Message> {
+    let specific = element.properties.specific.fields();
+
     column![
         text("Properties").size(18),
-        row![
-            column![text("name").color(LIGHT_BLUE), text("size").color(LIGHT_BLUE), text("padding").color(LIGHT_BLUE), text("clip").color(LIGHT_BLUE),],
-            horizontal_space().width(Fill),
-            column![
-                text(&element.properties.name).color(LIGHT_PINK),
-                text!("{{ width: {:?}, height: {:?} }}", element.properties.size.width, element.properties.size.height).color(LIGHT_PINK),
-                element.properties.padding.map(|Padding { top, left, right, bottom}| text!("{{ top: {top}, left: {left}, right: {right}, bottom: {bottom} }}")).unwrap_or(text("None")).color(LIGHT_PINK),
-                element.properties.clip.map(text).unwrap_or(text("None")).color(LIGHT_PINK),
-            ],
-        ],
-        text("Messages").size(18),
-        row![
-            Column::with_children(
-                element
-                    .properties
-                    .handlers
-                    .keys()
-                    .map(|name| text(name).color(LIGHT_BLUE))
-                    .map(Element::from)
-            ),
-            horizontal_space().width(Fill),
-            Column::with_children(
-                element
-                    .properties
-                    .handlers
-                    .values()
-                    .map(|message| text(message).color(LIGHT_PINK))
-                    .map(Element::from)
-            ),
-        ],
+        Column::from_iter(specific.iter().map(|(name, value)| {
+            row![
+                text(name).center().color(LIGHT_BLUE),
+                text(
+                    inspectable::to_string_pretty(value)
+                        .unwrap_or(String::from("None"))
+                )
+                .color(LIGHT_PINK)
+            ]
+            .padding(4)
+            .spacing(8)
+            .into()
+        })),
     ]
     .spacing(8)
     .padding(16)

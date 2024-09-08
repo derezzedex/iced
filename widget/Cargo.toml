@@ -27,6 +27,7 @@ wgpu = ["iced_renderer/wgpu"]
 markdown = ["dep:pulldown-cmark", "dep:url"]
 highlighter = ["dep:iced_highlighter"]
 advanced = []
+inspector = ["dep:serde", "dep:serde_json"]
 
 [dependencies]
 iced_renderer.workspace = true
@@ -37,6 +38,12 @@ once_cell.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
 unicode-segmentation.workspace = true
+
+serde.workspace = true
+serde.optional = true
+
+serde_json.workspace = true
+serde_json.optional = true
 
 ouroboros.workspace = true
 ouroboros.optional = true
