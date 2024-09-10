@@ -2,8 +2,8 @@ use iced::advanced::widget;
 use iced::advanced::widget::operation::inspectable;
 use iced::widget::button;
 use iced::widget::{
-    canvas, column, container, row, scrollable, stack, text,
-    text_editor, Column,
+    canvas, column, container, row, scrollable, stack, text, text_editor,
+    Column,
 };
 use iced::{
     highlighter, mouse, Center, Color, Element, Fill, Length, Padding, Task,

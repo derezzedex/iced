@@ -10,7 +10,7 @@ use std::collections::VecDeque;
 
 use rustc_hash::FxHashMap;
 
-pub use serde::{Serialize, Deserialize};
+pub use serde::{Deserialize, Serialize};
 pub use serde_json::to_string_pretty;
 
 #[derive(Debug, Clone)]

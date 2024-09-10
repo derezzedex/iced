@@ -5,7 +5,10 @@ use crate::widget::operation::inspectable;
 
 /// The strategy used to fill space in a specific dimension.
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[cfg_attr(feature = "inspector", derive(inspectable::Serialize, inspectable::Deserialize))]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub enum Length {
     /// Fill all the remaining space
     Fill,

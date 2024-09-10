@@ -36,7 +36,10 @@ use crate::widget::operation::inspectable;
 /// let widget = Widget::new().padding([10, 20]);        // top/bottom, left/right
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "inspector", derive(inspectable::Serialize, inspectable::Deserialize))]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub struct Padding {
     /// Top padding
     pub top: f32,
