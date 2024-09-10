@@ -207,26 +207,10 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Default)]
 #[allow(missing_docs)]
 pub struct State {
     is_pressed: bool,
-
-    #[cfg(feature = "inspector")]
-    properties: inspectable::Properties,
-}
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.is_pressed == other.is_pressed
-    }
-}
-
-#[cfg(feature = "inspector")]
-impl operation::Inspectable for State {
-    fn properties(&self) -> &inspectable::Properties {
-        &self.properties
-    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -241,37 +225,7 @@ where
     }
 
     fn state(&self) -> tree::State {
-        #[cfg(not(feature = "inspector"))]
-        let state = State { is_pressed: false };
-
-        #[cfg(feature = "inspector")]
-        let state = {
-            #[derive(inspectable::Serialize, inspectable::Deserialize)]
-            struct Properties {
-                padding: Padding,
-                width: Length,
-                height: Length,
-                clip: bool,
-            }
-
-            let specific = inspectable::Specific::serialize(Properties {
-                padding: self.padding,
-                width: self.width,
-                height: self.height,
-                clip: self.clip,
-            });
-
-            State {
-                properties: inspectable::Properties {
-                    name: String::from("Button"),
-                    location: self.location,
-                    specific,
-                },
-                is_pressed: false,
-            }
-        };
-
-        tree::State::new(state)
+        tree::State::new(State::default())
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -318,11 +272,32 @@ where
         operation: &mut dyn Operation,
     ) {
         #[cfg(feature = "inspector")]
-        operation.inspectable(
-            tree.state.downcast_mut::<State>(),
-            None,
-            layout.bounds(),
-        );
+        {
+            #[derive(inspectable::Serialize, inspectable::Deserialize)]
+            struct Properties {
+                padding: Padding,
+                width: Length,
+                height: Length,
+                clip: bool,
+            }
+
+            let specific = inspectable::Specific::serialize(Properties {
+                padding: self.padding,
+                width: self.width,
+                height: self.height,
+                clip: self.clip,
+            });
+
+            operation.inspectable(
+                &mut inspectable::Properties {
+                    name: String::from("Button"),
+                    location: self.location,
+                    specific,
+                },
+                None,
+                layout.bounds(),
+            );
+        }
 
         operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(

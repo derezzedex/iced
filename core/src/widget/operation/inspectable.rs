@@ -50,6 +50,12 @@ pub struct Properties {
     pub specific: Specific,
 }
 
+impl Inspectable for Properties {
+    fn properties(&self) -> &Properties {
+        &self
+    }
+}
+
 pub trait Inspectable {
     fn properties(&self) -> &Properties;
 }
