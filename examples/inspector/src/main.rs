@@ -79,6 +79,7 @@ enum Message {
     PaneResized(pane_grid::ResizeEvent),
     Inspected(inspectable::Map),
     Editor(EditorMessage),
+    EditorClosed,
 }
 
 impl Inspector {
@@ -114,12 +115,22 @@ impl Inspector {
                     content.update(message);
                 }
             }
+            Message::EditorClosed => {
+                self.editor.map(|editor| self.panes.close(editor));
+                if let Pane::Content { overlay, .. } =
+                    self.panes.get_mut(self.content).unwrap()
+                {
+                    overlay.take();
+                }
+            }
             Message::WindowResized => {
                 return widget::operate(inspectable::map())
                     .map(Message::Inspected);
             }
             Message::PaneResized(pane_grid::ResizeEvent { split, ratio }) => {
                 self.panes.resize(split, ratio);
+                return widget::operate(inspectable::map())
+                    .map(Message::Inspected);
             }
             Message::Inspected(widgets) => {
                 if let Pane::Content { overlay, .. } =
@@ -180,7 +191,13 @@ impl Inspector {
 
 fn editor_controls<'a>() -> pane_grid::TitleBar<'a, Message> {
     let title = text("Inspector").center();
+    let controls = button("close")
+        .padding(2)
+        .on_press(Message::EditorClosed)
+        .style(button::danger);
+
     pane_grid::TitleBar::new(title)
+        .controls(controls)
         .style(|_| container::Style {
             background: Some(Background::Color(Color::from_rgb(0.1, 0.1, 0.1))),
             ..Default::default()
