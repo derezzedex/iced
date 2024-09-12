@@ -1,12 +1,13 @@
 use iced::advanced::widget;
 use iced::advanced::widget::operation::inspectable;
-use iced::widget::button;
+use iced::widget::{button, pane_grid};
 use iced::widget::{
     canvas, column, container, row, scrollable, stack, text, text_editor,
-    Column,
+    Column, PaneGrid,
 };
 use iced::{
-    highlighter, mouse, Center, Color, Element, Fill, Length, Padding, Task,
+    highlighter, mouse, Background, Center, Color, Element, Fill, Length,
+    Padding, Task,
 };
 
 use std::path::{Path, PathBuf};
@@ -19,47 +20,122 @@ pub fn main() -> iced::Result {
         .run_with(Inspector::new)
 }
 
+enum Pane<Content> {
+    Content {
+        content: Content,
+        overlay: Option<Overlay>,
+    },
+    Editor(Editor),
+}
+
 #[derive(Default)]
-struct Inspector {
-    editor: Editor,
-    overlay: Option<Overlay>,
+struct Example {
     value: i64,
 }
 
 #[derive(Debug, Clone)]
-enum Message {
+enum ExampleMessage {
     Increment,
     Decrement,
+}
+
+impl Example {
+    fn update(&mut self, message: ExampleMessage) {
+        match message {
+            ExampleMessage::Increment => {
+                self.value += 1;
+            }
+            ExampleMessage::Decrement => {
+                self.value -= 1;
+            }
+        }
+    }
+
+    fn view(&self) -> Element<ExampleMessage> {
+        column![
+            button("Increment")
+                .padding(0)
+                .on_press(ExampleMessage::Increment),
+            text(self.value).size(50),
+            button("Decrement").on_press(ExampleMessage::Decrement)
+        ]
+        .padding(20)
+        .width(Fill)
+        .align_x(Center)
+        .into()
+    }
+}
+
+struct Inspector {
+    content: pane_grid::Pane,
+    editor: Option<pane_grid::Pane>,
+    panes: pane_grid::State<Pane<Example>>,
+}
+
+#[derive(Debug, Clone)]
+enum Message {
+    Example(ExampleMessage),
     WindowResized,
+    PaneResized(pane_grid::ResizeEvent),
     Inspected(inspectable::Map),
     Editor(EditorMessage),
 }
 
 impl Inspector {
     fn new() -> (Self, iced::Task<Message>) {
+        let content = Pane::Content {
+            content: Example::default(),
+            overlay: None,
+        };
+        let (mut panes, content) = pane_grid::State::new(content);
+        let editor = panes
+            .split(
+                pane_grid::Axis::Horizontal,
+                content,
+                Pane::Editor(Editor::default()),
+            )
+            .map(|(editor, _)| editor);
+
         (
-            Self::default(),
+            Self {
+                content,
+                editor,
+                panes,
+            },
             widget::operate(inspectable::map()).map(Message::Inspected),
         )
     }
     fn update(&mut self, message: Message) -> iced::Task<Message> {
         match message {
-            Message::Increment => {
-                self.value += 1;
-            }
-            Message::Decrement => {
-                self.value -= 1;
+            Message::Example(message) => {
+                if let Some(Pane::Content { content, .. }) =
+                    self.panes.get_mut(self.content)
+                {
+                    content.update(message);
+                }
             }
             Message::WindowResized => {
-                self.overlay.take();
                 return widget::operate(inspectable::map())
                     .map(Message::Inspected);
             }
+            Message::PaneResized(pane_grid::ResizeEvent { split, ratio }) => {
+                self.panes.resize(split, ratio);
+            }
             Message::Inspected(widgets) => {
-                self.overlay = Some(Overlay { map: widgets });
+                if let Pane::Content { overlay, .. } =
+                    self.panes.get_mut(self.content).unwrap()
+                {
+                    *overlay = Some(Overlay { map: widgets });
+                }
             }
             Message::Editor(message) => {
-                return self.editor.update(message).map(Message::Editor);
+                if let Some(Pane::Editor(editor)) = self
+                    .editor
+                    .map(|editor| self.panes.get_mut(editor))
+                    .flatten()
+                {
+                    return editor.update(message).map(Message::Editor);
+                }
             }
         }
 
@@ -67,24 +143,29 @@ impl Inspector {
     }
 
     fn view(&self) -> Element<Message> {
-        let content = column![
-            button("Increment").padding(0).on_press(Message::Increment),
-            text(self.value).size(50),
-            button("Decrement").on_press(Message::Decrement)
-        ]
-        .padding(20)
-        .width(Fill)
-        .align_x(Center);
+        PaneGrid::new(&self.panes, |_, pane, _| match pane {
+            Pane::Content { content, overlay } => {
+                let overlay = overlay
+                    .as_ref()
+                    .map(|p| canvas(p).width(Fill).height(Fill));
 
-        let overlay = self
-            .overlay
-            .as_ref()
-            .map(|p| canvas(p).width(Fill).height(Fill));
-
-        column![
-            stack![content].push_maybe(overlay),
-            self.editor.view().map(Message::Editor),
-        ]
+                pane_grid::Content::new(
+                    stack![content.view().map(Message::Example)]
+                        .push_maybe(overlay),
+                )
+            }
+            Pane::Editor(editor) => {
+                pane_grid::Content::new(editor.view().map(Message::Editor))
+                    .style(|_| container::Style {
+                        background: Some(Background::Color(Color::from_rgb(
+                            0.15, 0.15, 0.15,
+                        ))),
+                        ..Default::default()
+                    })
+                    .title_bar(editor_controls())
+            }
+        })
+        .on_resize(10, Message::PaneResized)
         .into()
     }
 
@@ -95,6 +176,16 @@ impl Inspector {
     fn theme(&self) -> iced::Theme {
         iced::Theme::Dark
     }
+}
+
+fn editor_controls<'a>() -> pane_grid::TitleBar<'a, Message> {
+    let title = text("Inspector").center();
+    pane_grid::TitleBar::new(title)
+        .style(|_| container::Style {
+            background: Some(Background::Color(Color::from_rgb(0.1, 0.1, 0.1))),
+            ..Default::default()
+        })
+        .padding(6)
 }
 
 struct Overlay {
