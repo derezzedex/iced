@@ -1,6 +1,6 @@
 use iced::advanced::widget;
 use iced::advanced::widget::operation::inspectable;
-use iced::widget::{button, pane_grid};
+use iced::widget::{button, horizontal_space, pane_grid};
 use iced::widget::{
     canvas, column, container, row, scrollable, stack, text, text_editor,
     Column, PaneGrid,
@@ -79,7 +79,6 @@ enum Message {
     PaneResized(pane_grid::ResizeEvent),
     Inspected(inspectable::Map),
     Editor(EditorMessage),
-    EditorClosed,
 }
 
 impl Inspector {
@@ -115,14 +114,6 @@ impl Inspector {
                     content.update(message);
                 }
             }
-            Message::EditorClosed => {
-                self.editor.map(|editor| self.panes.close(editor));
-                if let Pane::Content { overlay, .. } =
-                    self.panes.get_mut(self.content).unwrap()
-                {
-                    overlay.take();
-                }
-            }
             Message::WindowResized => {
                 return widget::operate(inspectable::map())
                     .map(Message::Inspected);
@@ -145,7 +136,17 @@ impl Inspector {
                     .map(|editor| self.panes.get_mut(editor))
                     .flatten()
                 {
-                    return editor.update(message).map(Message::Editor);
+                    let (event, task) = editor.update(message);
+                    if let Some(Event::Close) = event {
+                        self.editor.map(|editor| self.panes.close(editor));
+                        if let Pane::Content { overlay, .. } =
+                            self.panes.get_mut(self.content).unwrap()
+                        {
+                            overlay.take();
+                        }
+                    }
+
+                    return task.map(Message::Editor);
                 }
             }
         }
@@ -173,7 +174,6 @@ impl Inspector {
                         ))),
                         ..Default::default()
                     })
-                    .title_bar(editor_controls())
             }
         })
         .on_resize(10, Message::PaneResized)
@@ -187,22 +187,6 @@ impl Inspector {
     fn theme(&self) -> iced::Theme {
         iced::Theme::Dark
     }
-}
-
-fn editor_controls<'a>() -> pane_grid::TitleBar<'a, Message> {
-    let title = text("Inspector").center();
-    let controls = button("close")
-        .padding(2)
-        .on_press(Message::EditorClosed)
-        .style(button::danger);
-
-    pane_grid::TitleBar::new(title)
-        .controls(controls)
-        .style(|_| container::Style {
-            background: Some(Background::Color(Color::from_rgb(0.1, 0.1, 0.1))),
-            ..Default::default()
-        })
-        .padding(6)
 }
 
 struct Overlay {
@@ -373,11 +357,29 @@ enum EditorMessage {
     Hovered(Option<inspectable::Element>),
     FileOpened(Arc<String>),
     EditorAction(text_editor::Action),
+    Close,
+}
+
+#[derive(Debug, Clone)]
+enum Event {
+    Close,
 }
 
 impl Editor {
-    fn update(&mut self, message: EditorMessage) -> Task<EditorMessage> {
+    fn none() -> (Option<Event>, Task<EditorMessage>) {
+        (None, Task::none())
+    }
+
+    fn task(task: Task<EditorMessage>) -> (Option<Event>, Task<EditorMessage>) {
+        (None, task)
+    }
+
+    fn update(
+        &mut self,
+        message: EditorMessage,
+    ) -> (Option<Event>, Task<EditorMessage>) {
         match message {
+            EditorMessage::Close => (Some(Event::Close), Task::none()),
             EditorMessage::Hovered(Some(element)) => {
                 let file = element.properties.location.file().to_string();
                 let location = element.properties.location;
@@ -385,7 +387,7 @@ impl Editor {
                 if self.highlighted.as_ref().is_some_and(|hl| {
                     hl.properties.location == element.properties.location
                 }) {
-                    return Task::none();
+                    return Self::none();
                 }
 
                 self.highlighted = Some(element);
@@ -409,32 +411,32 @@ impl Editor {
 
                     self.content.perform(text_editor::Action::SelectWord);
 
-                    return Task::none();
+                    return Self::none();
                 }
 
                 self.file = Some(file.clone());
 
-                return Task::perform(
+                return Self::task(Task::perform(
                     open_file(file),
                     EditorMessage::FileOpened,
-                );
+                ));
             }
             EditorMessage::Hovered(None) => {
                 self.highlighted = None;
 
-                Task::none()
+                Self::none()
             }
             EditorMessage::EditorAction(action) => {
                 if matches!(action, text_editor::Action::Scroll { .. }) {
                     self.content.perform(action);
                 }
 
-                Task::none()
+                Self::none()
             }
             EditorMessage::FileOpened(content) => {
                 self.content = text_editor::Content::with_text(&content);
 
-                Task::none()
+                Self::none()
             }
         }
     }
@@ -456,10 +458,23 @@ impl Editor {
                 .into()
         };
 
-        row![
-            container(text_editor).width(Length::FillPortion(2)),
-            scrollable(properties).width(Fill)
-        ]
+        let title = container(text("Inspector").center()).padding(4);
+        let close = button("close")
+            .padding(2)
+            .on_press(EditorMessage::Close)
+            .style(button::danger);
+
+        container(column![
+            row![title, horizontal_space().width(Fill), close],
+            row![
+                container(text_editor).width(Length::FillPortion(2)),
+                scrollable(properties).width(Fill)
+            ]
+        ])
+        .style(|_| container::Style {
+            background: Some(Background::Color(Color::from_rgb(0.1, 0.1, 0.1))),
+            ..Default::default()
+        })
         .into()
     }
 }
