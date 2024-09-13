@@ -1,9 +1,9 @@
 use iced::advanced::widget;
 use iced::advanced::widget::operation::inspectable;
-use iced::widget::{button, horizontal_space, pane_grid};
+use iced::widget::{button, horizontal_space, pane_grid, svg};
 use iced::widget::{
     canvas, column, container, row, scrollable, stack, text, text_editor,
-    Column, PaneGrid,
+    Column, PaneGrid, Svg,
 };
 use iced::{
     highlighter, mouse, Background, Center, Color, Element, Fill, Length,
@@ -459,10 +459,10 @@ impl Editor {
         };
 
         let title = container(text("Inspector").center()).padding(4);
-        let close = button("close")
+        let close = button(close().style(icon))
             .padding(2)
             .on_press(EditorMessage::Close)
-            .style(button::danger);
+            .style(icon_button);
 
         container(column![
             row![title, horizontal_space().width(Fill), close],
@@ -503,6 +503,41 @@ fn properties<'a, Message: 'a>(
     .spacing(8)
     .padding(16)
     .into()
+}
+
+fn close<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/close-x.svg"
+    )))
+    .width(Length::Shrink)
+    .height(Length::Shrink)
+}
+
+fn icon(theme: &iced::Theme, status: svg::Status) -> svg::Style {
+    let palette = theme.palette();
+
+    let color = match status {
+        svg::Status::Idle => Some(palette.text),
+        svg::Status::Hovered => Some(palette.primary),
+    };
+
+    svg::Style { color }
+}
+
+fn icon_button(theme: &iced::Theme, status: button::Status) -> button::Style {
+    let palette = theme.palette();
+
+    let background = match status {
+        button::Status::Pressed => {
+            Some(Background::Color(palette.text.scale_alpha(0.1)))
+        }
+        _ => None,
+    };
+
+    button::Style {
+        background,
+        ..Default::default()
+    }
 }
 
 async fn open_file(path: impl Into<PathBuf>) -> Arc<String> {
