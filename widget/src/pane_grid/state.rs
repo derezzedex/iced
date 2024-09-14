@@ -174,7 +174,9 @@ impl<T> State<T> {
     /// Drops the given [`Pane`] into the provided [`Target`].
     pub fn drop(&mut self, pane: Pane, target: Target) {
         match target {
-            Target::Edge(edge) => self.move_to_edge(pane, edge),
+            Target::Edge(edge) => {
+                let _ = self.move_to_edge(pane, edge);
+            }
             Target::Pane(target, region) => {
                 self.split_with(target, pane, region);
             }
@@ -238,19 +240,23 @@ impl<T> State<T> {
     /// Move [`Pane`] to an [`Edge`] of the [`PaneGrid`].
     ///
     /// [`PaneGrid`]: super::PaneGrid
-    pub fn move_to_edge(&mut self, pane: Pane, edge: Edge) {
+    pub fn move_to_edge(
+        &mut self,
+        pane: Pane,
+        edge: Edge,
+    ) -> Option<(Pane, Split)> {
         match edge {
             Edge::Top => {
-                self.split_major_node_and_swap(Axis::Horizontal, pane, true);
+                self.split_major_node_and_swap(Axis::Horizontal, pane, true)
             }
             Edge::Bottom => {
-                self.split_major_node_and_swap(Axis::Horizontal, pane, false);
+                self.split_major_node_and_swap(Axis::Horizontal, pane, false)
             }
             Edge::Left => {
-                self.split_major_node_and_swap(Axis::Vertical, pane, true);
+                self.split_major_node_and_swap(Axis::Vertical, pane, true)
             }
             Edge::Right => {
-                self.split_major_node_and_swap(Axis::Vertical, pane, false);
+                self.split_major_node_and_swap(Axis::Vertical, pane, false)
             }
         }
     }
@@ -260,10 +266,12 @@ impl<T> State<T> {
         axis: Axis,
         pane: Pane,
         swap: bool,
-    ) {
+    ) -> Option<(Pane, Split)> {
         if let Some((state, _)) = self.close(pane) {
-            let _ = self.split_node(axis, None, state, swap);
+            return self.split_node(axis, None, state, swap);
         }
+
+        None
     }
 
     /// Swaps the position of the provided panes in the [`State`].
