@@ -1,6 +1,6 @@
 use iced::advanced::widget;
 use iced::advanced::widget::operation::inspectable;
-use iced::widget::{button, horizontal_space, pane_grid, svg};
+use iced::widget::{button, horizontal_space, pane_grid, svg, Button};
 use iced::widget::{
     canvas, column, container, row, scrollable, stack, text, text_editor,
     Column, PaneGrid, Svg,
@@ -26,6 +26,15 @@ enum Pane<Content> {
         overlay: Option<Overlay>,
     },
     Editor(Editor),
+}
+
+impl<Content> std::fmt::Debug for Pane<Content> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Pane::Content { .. } => f.write_str("Pane::Content"),
+            Pane::Editor(_) => f.write_str("Pane::Editor"),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -137,12 +146,34 @@ impl Inspector {
                     .flatten()
                 {
                     let (event, task) = editor.update(message);
-                    if let Some(Event::Close) = event {
-                        self.editor.map(|editor| self.panes.close(editor));
-                        if let Pane::Content { overlay, .. } =
-                            self.panes.get_mut(self.content).unwrap()
-                        {
-                            overlay.take();
+                    match event {
+                        None => {}
+                        Some(Event::Close) => {
+                            self.editor
+                                .take()
+                                .map(|editor| self.panes.close(editor));
+
+                            if let Pane::Content { overlay, .. } =
+                                self.panes.get_mut(self.content).unwrap()
+                            {
+                                overlay.take();
+                            }
+                        }
+                        Some(Event::LayoutChanged(layout)) => {
+                            if let Some(editor) = &mut self.editor {
+                                if let Some((pane, _)) = self
+                                    .panes
+                                    .move_to_edge(*editor, layout.to_edge())
+                                {
+                                    *editor = pane;
+                                }
+                            }
+
+                            if let Pane::Content { overlay, .. } =
+                                self.panes.get_mut(self.content).unwrap()
+                            {
+                                overlay.take();
+                            }
                         }
                     }
 
@@ -339,6 +370,7 @@ struct Editor {
     highlighted: Option<inspectable::Element>,
     content: text_editor::Content,
     theme: highlighter::Theme,
+    layout: Layout,
 }
 
 impl Default for Editor {
@@ -348,6 +380,7 @@ impl Default for Editor {
             highlighted: None,
             content: text_editor::Content::new(),
             theme: highlighter::Theme::Base16Eighties,
+            layout: Layout::Bottom,
         }
     }
 }
@@ -358,11 +391,30 @@ enum EditorMessage {
     FileOpened(Arc<String>),
     EditorAction(text_editor::Action),
     Close,
+    ChangeLayout(Layout),
 }
 
 #[derive(Debug, Clone)]
 enum Event {
     Close,
+    LayoutChanged(Layout),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+enum Layout {
+    Bottom,
+    Left,
+    Right,
+}
+
+impl Layout {
+    fn to_edge(&self) -> pane_grid::Edge {
+        match self {
+            Layout::Bottom => pane_grid::Edge::Bottom,
+            Layout::Left => pane_grid::Edge::Left,
+            Layout::Right => pane_grid::Edge::Right,
+        }
+    }
 }
 
 impl Editor {
@@ -374,11 +426,19 @@ impl Editor {
         (None, task)
     }
 
+    fn is_current_layout(&self, layout: Layout) -> bool {
+        self.layout == layout
+    }
+
     fn update(
         &mut self,
         message: EditorMessage,
     ) -> (Option<Event>, Task<EditorMessage>) {
         match message {
+            EditorMessage::ChangeLayout(layout) => {
+                self.layout = layout;
+                (Some(Event::LayoutChanged(layout)), Task::none())
+            }
             EditorMessage::Close => (Some(Event::Close), Task::none()),
             EditorMessage::Hovered(Some(element)) => {
                 let file = element.properties.location.file().to_string();
@@ -459,13 +519,29 @@ impl Editor {
         };
 
         let title = container(text("Inspector").center()).padding(4);
-        let close = button(close().style(icon))
-            .padding(2)
-            .on_press(EditorMessage::Close)
-            .style(icon_button);
+
+        let controls = row![
+            icon_button(
+                bottom_layout().style(icon),
+                self.is_current_layout(Layout::Bottom),
+                EditorMessage::ChangeLayout(Layout::Bottom)
+            ),
+            icon_button(
+                left_layout().style(icon),
+                self.is_current_layout(Layout::Left),
+                EditorMessage::ChangeLayout(Layout::Left)
+            ),
+            icon_button(
+                right_layout().style(icon),
+                self.is_current_layout(Layout::Right),
+                EditorMessage::ChangeLayout(Layout::Right)
+            ),
+            horizontal_space().width(4),
+            icon_button(close().style(icon), false, EditorMessage::Close),
+        ];
 
         container(column![
-            row![title, horizontal_space().width(Fill), close],
+            row![title, horizontal_space().width(Fill), controls],
             row![
                 container(text_editor).width(Length::FillPortion(2)),
                 scrollable(properties).width(Fill)
@@ -513,6 +589,58 @@ fn close<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
     .height(Length::Shrink)
 }
 
+fn bottom_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/layout-bottom.svg"
+    )))
+    .width(Length::Shrink)
+    .height(Length::Shrink)
+}
+
+fn left_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/layout-left.svg"
+    )))
+    .width(Length::Shrink)
+    .height(Length::Shrink)
+}
+
+fn right_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/layout-right.svg"
+    )))
+    .width(Length::Shrink)
+    .height(Length::Shrink)
+}
+
+fn icon_button<'a, Message: 'a>(
+    content: impl Into<Element<'a, Message>>,
+    active: bool,
+    message: Message,
+) -> Button<'a, Message> {
+    button(content)
+        .padding(2)
+        .on_press(message)
+        .style(move |theme, status| {
+            let palette = theme.palette();
+
+            let background = match status {
+                button::Status::Active | button::Status::Hovered if active => {
+                    Some(Background::Color(palette.text.scale_alpha(0.1)))
+                }
+                button::Status::Pressed => {
+                    Some(Background::Color(palette.text.scale_alpha(0.1)))
+                }
+                _ => None,
+            };
+
+            button::Style {
+                background,
+                ..Default::default()
+            }
+        })
+}
+
 fn icon(theme: &iced::Theme, status: svg::Status) -> svg::Style {
     let palette = theme.palette();
 
@@ -522,22 +650,6 @@ fn icon(theme: &iced::Theme, status: svg::Status) -> svg::Style {
     };
 
     svg::Style { color }
-}
-
-fn icon_button(theme: &iced::Theme, status: button::Status) -> button::Style {
-    let palette = theme.palette();
-
-    let background = match status {
-        button::Status::Pressed => {
-            Some(Background::Color(palette.text.scale_alpha(0.1)))
-        }
-        _ => None,
-    };
-
-    button::Style {
-        background,
-        ..Default::default()
-    }
 }
 
 async fn open_file(path: impl Into<PathBuf>) -> Arc<String> {
