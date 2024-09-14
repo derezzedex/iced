@@ -79,6 +79,7 @@ struct Inspector {
     content: pane_grid::Pane,
     editor: Option<pane_grid::Pane>,
     panes: pane_grid::State<Pane<Example>>,
+    element_selector: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -110,6 +111,7 @@ impl Inspector {
                 content,
                 editor,
                 panes,
+                element_selector: true,
             },
             widget::operate(inspectable::map()).map(Message::Inspected),
         )
@@ -124,11 +126,20 @@ impl Inspector {
                 }
             }
             Message::WindowResized => {
+                if !self.element_selector {
+                    return Task::none();
+                }
+
                 return widget::operate(inspectable::map())
                     .map(Message::Inspected);
             }
             Message::PaneResized(pane_grid::ResizeEvent { split, ratio }) => {
                 self.panes.resize(split, ratio);
+
+                if !self.element_selector {
+                    return Task::none();
+                }
+
                 return widget::operate(inspectable::map())
                     .map(Message::Inspected);
             }
@@ -136,7 +147,10 @@ impl Inspector {
                 if let Pane::Content { overlay, .. } =
                     self.panes.get_mut(self.content).unwrap()
                 {
-                    *overlay = Some(Overlay { map: widgets });
+                    *overlay = Some(Overlay {
+                        map: widgets,
+                        element_selector: self.element_selector,
+                    });
                 }
             }
             Message::Editor(message) => {
@@ -148,6 +162,17 @@ impl Inspector {
                     let (event, task) = editor.update(message);
                     match event {
                         None => {}
+                        Some(Event::ElementSelectorToggled) => {
+                            self.element_selector = !self.element_selector;
+                            if let Pane::Content {
+                                overlay: Some(overlay),
+                                ..
+                            } = self.panes.get_mut(self.content).unwrap()
+                            {
+                                overlay.element_selector =
+                                    self.element_selector;
+                            }
+                        }
                         Some(Event::Close) => {
                             self.editor
                                 .take()
@@ -222,6 +247,7 @@ impl Inspector {
 
 struct Overlay {
     map: inspectable::Map,
+    element_selector: bool,
 }
 
 #[derive(Default)]
@@ -248,6 +274,10 @@ impl canvas::Program<Message> for Overlay {
     ) -> (canvas::event::Status, Option<Message>) {
         match event {
             canvas::Event::Mouse(mouse::Event::CursorMoved { position }) => {
+                if !self.element_selector {
+                    return (canvas::event::Status::Ignored, None);
+                }
+
                 state.hovered = self
                     .map
                     .widgets()
@@ -371,6 +401,7 @@ struct Editor {
     content: text_editor::Content,
     theme: highlighter::Theme,
     layout: Layout,
+    element_selector: bool,
 }
 
 impl Default for Editor {
@@ -381,6 +412,7 @@ impl Default for Editor {
             content: text_editor::Content::new(),
             theme: highlighter::Theme::Base16Eighties,
             layout: Layout::Bottom,
+            element_selector: true,
         }
     }
 }
@@ -392,12 +424,14 @@ enum EditorMessage {
     EditorAction(text_editor::Action),
     Close,
     ChangeLayout(Layout),
+    ToggleElementSelector,
 }
 
 #[derive(Debug, Clone)]
 enum Event {
     Close,
     LayoutChanged(Layout),
+    ElementSelectorToggled,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -435,12 +469,20 @@ impl Editor {
         message: EditorMessage,
     ) -> (Option<Event>, Task<EditorMessage>) {
         match message {
+            EditorMessage::ToggleElementSelector => {
+                self.element_selector = !self.element_selector;
+                (Some(Event::ElementSelectorToggled), Task::none())
+            }
             EditorMessage::ChangeLayout(layout) => {
                 self.layout = layout;
                 (Some(Event::LayoutChanged(layout)), Task::none())
             }
             EditorMessage::Close => (Some(Event::Close), Task::none()),
             EditorMessage::Hovered(Some(element)) => {
+                if !self.element_selector {
+                    return Self::none();
+                }
+
                 let file = element.properties.location.file().to_string();
                 let location = element.properties.location;
 
@@ -518,7 +560,14 @@ impl Editor {
                 .into()
         };
 
-        let title = container(text("Inspector").center()).padding(4);
+        let element_selector = icon_button(
+            element_selector().style(icon),
+            self.element_selector,
+            EditorMessage::ToggleElementSelector,
+        )
+        .padding([2.0, 4.0]);
+
+        let title = container(text("Inspector").center()).padding([0.0, 4.0]);
 
         let controls = row![
             icon_button(
@@ -541,7 +590,12 @@ impl Editor {
         ];
 
         container(column![
-            row![title, horizontal_space().width(Fill), controls],
+            row![
+                element_selector,
+                title,
+                horizontal_space().width(Fill),
+                controls
+            ],
             row![
                 container(text_editor).width(Length::FillPortion(2)),
                 scrollable(properties).width(Fill)
@@ -608,6 +662,14 @@ fn left_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
 fn right_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
     Svg::new(svg::Handle::from_memory(include_bytes!(
         "../assets/layout-right.svg"
+    )))
+    .width(Length::Shrink)
+    .height(Length::Shrink)
+}
+
+fn element_selector<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/element-selector.svg"
     )))
     .width(Length::Shrink)
     .height(Length::Shrink)
