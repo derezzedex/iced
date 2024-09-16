@@ -110,7 +110,7 @@ impl Devtools {
                     let (event, task) = editor.update(message);
                     match event {
                         None => {}
-                        Some(Event::ElementSelectorToggled) => {
+                        Some(Event::HoverToggled) => {
                             self.element_selector = !self.element_selector;
                             if let Some(overlay) = &mut self.overlay {
                                 overlay.locked = !self.element_selector;

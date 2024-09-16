@@ -1,12 +1,8 @@
 use iced::advanced::widget::operation::inspectable;
-use iced::widget::{button, horizontal_space, pane_grid, svg, Button};
 use iced::widget::{
-    canvas, column, container, row, scrollable, text, text_editor, Column, Svg,
+    canvas, column, container, row, scrollable, text, text_editor, Column,
 };
-use iced::{
-    highlighter, mouse, Background, Color, Element, Fill, Length, Padding, Task,
-};
-
+use iced::{highlighter, mouse, Color, Element, Fill, Length, Padding, Task};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -15,8 +11,6 @@ pub struct Inspector {
     highlighted: Option<inspectable::Element>,
     content: text_editor::Content,
     theme: highlighter::Theme,
-    layout: Layout,
-    element_selector: bool,
 }
 
 impl Default for Inspector {
@@ -26,8 +20,6 @@ impl Default for Inspector {
             highlighted: None,
             content: text_editor::Content::new(),
             theme: highlighter::Theme::Base16Eighties,
-            layout: Layout::Bottom,
-            element_selector: true,
         }
     }
 }
@@ -37,74 +29,19 @@ pub enum Message {
     Hovered(Option<inspectable::Element>),
     FileOpened(Arc<String>),
     EditorAction(text_editor::Action),
-    Close,
-    ChangeLayout(Layout),
-    ToggleElementSelector,
-}
-
-#[derive(Debug, Clone)]
-pub enum Event {
-    Close,
-    LayoutChanged(Layout),
-    ElementSelectorToggled,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum Layout {
-    Bottom,
-    Left,
-    Right,
-}
-
-impl Layout {
-    pub fn to_edge(&self) -> pane_grid::Edge {
-        match self {
-            Layout::Bottom => pane_grid::Edge::Bottom,
-            Layout::Left => pane_grid::Edge::Left,
-            Layout::Right => pane_grid::Edge::Right,
-        }
-    }
 }
 
 impl Inspector {
-    fn none() -> (Option<Event>, Task<Message>) {
-        (None, Task::none())
-    }
-
-    fn task(task: Task<Message>) -> (Option<Event>, Task<Message>) {
-        (None, task)
-    }
-
-    fn is_current_layout(&self, layout: Layout) -> bool {
-        self.layout == layout
-    }
-
-    pub fn update(
-        &mut self,
-        message: Message,
-    ) -> (Option<Event>, Task<Message>) {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::ToggleElementSelector => {
-                self.element_selector = !self.element_selector;
-                (Some(Event::ElementSelectorToggled), Task::none())
-            }
-            Message::ChangeLayout(layout) => {
-                self.layout = layout;
-                (Some(Event::LayoutChanged(layout)), Task::none())
-            }
-            Message::Close => (Some(Event::Close), Task::none()),
             Message::Hovered(Some(element)) => {
-                if !self.element_selector {
-                    return Self::none();
-                }
-
                 let file = element.properties.location.file().to_string();
                 let location = element.properties.location;
 
                 if self.highlighted.as_ref().is_some_and(|hl| {
                     hl.properties.location == element.properties.location
                 }) {
-                    return Self::none();
+                    return Task::none();
                 }
 
                 self.highlighted = Some(element);
@@ -128,32 +65,29 @@ impl Inspector {
 
                     self.content.perform(text_editor::Action::SelectWord);
 
-                    return Self::none();
+                    return Task::none();
                 }
 
                 self.file = Some(file.clone());
 
-                return Self::task(Task::perform(
-                    open_file(file),
-                    Message::FileOpened,
-                ));
+                return Task::perform(open_file(file), Message::FileOpened);
             }
             Message::Hovered(None) => {
                 self.highlighted = None;
 
-                Self::none()
+                Task::none()
             }
             Message::EditorAction(action) => {
                 if matches!(action, text_editor::Action::Scroll { .. }) {
                     self.content.perform(action);
                 }
 
-                Self::none()
+                Task::none()
             }
             Message::FileOpened(content) => {
                 self.content = text_editor::Content::with_text(&content);
 
-                Self::none()
+                Task::none()
             }
         }
     }
@@ -175,51 +109,10 @@ impl Inspector {
                 .into()
         };
 
-        let element_selector = icon_button(
-            element_selector().style(icon),
-            self.element_selector,
-            Message::ToggleElementSelector,
-        )
-        .padding([2.0, 4.0]);
-
-        let title = container(text("Inspector").center()).padding([0.0, 4.0]);
-
-        let controls = row![
-            icon_button(
-                bottom_layout().style(icon),
-                self.is_current_layout(Layout::Bottom),
-                Message::ChangeLayout(Layout::Bottom)
-            ),
-            icon_button(
-                left_layout().style(icon),
-                self.is_current_layout(Layout::Left),
-                Message::ChangeLayout(Layout::Left)
-            ),
-            icon_button(
-                right_layout().style(icon),
-                self.is_current_layout(Layout::Right),
-                Message::ChangeLayout(Layout::Right)
-            ),
-            horizontal_space().width(4),
-            icon_button(close().style(icon), false, Message::Close),
-        ];
-
-        container(column![
-            row![
-                element_selector,
-                title,
-                horizontal_space().width(Fill),
-                controls
-            ],
-            row![
-                container(text_editor).width(Length::FillPortion(2)),
-                scrollable(properties).width(Fill)
-            ]
-        ])
-        .style(|_| container::Style {
-            background: Some(Background::Color(Color::from_rgb(0.1, 0.1, 0.1))),
-            ..Default::default()
-        })
+        row![
+            container(text_editor).width(Length::FillPortion(2)),
+            scrollable(properties).width(Fill)
+        ]
         .into()
     }
 }
@@ -248,85 +141,6 @@ fn properties<'a, Message: 'a>(
     .spacing(8)
     .padding(16)
     .into()
-}
-
-fn close<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../../assets/close-x.svg"
-    )))
-    .width(Length::Shrink)
-    .height(Length::Shrink)
-}
-
-fn bottom_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../../assets/layout-bottom.svg"
-    )))
-    .width(Length::Shrink)
-    .height(Length::Shrink)
-}
-
-fn left_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../../assets/layout-left.svg"
-    )))
-    .width(Length::Shrink)
-    .height(Length::Shrink)
-}
-
-fn right_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../../assets/layout-right.svg"
-    )))
-    .width(Length::Shrink)
-    .height(Length::Shrink)
-}
-
-fn element_selector<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../../assets/element-selector.svg"
-    )))
-    .width(Length::Shrink)
-    .height(Length::Shrink)
-}
-
-fn icon_button<'a, Message: 'a>(
-    content: impl Into<Element<'a, Message>>,
-    active: bool,
-    message: Message,
-) -> Button<'a, Message> {
-    button(content)
-        .padding(2)
-        .on_press(message)
-        .style(move |theme, status| {
-            let palette = theme.palette();
-
-            let background = match status {
-                button::Status::Active | button::Status::Hovered if active => {
-                    Some(Background::Color(palette.text.scale_alpha(0.1)))
-                }
-                button::Status::Pressed => {
-                    Some(Background::Color(palette.text.scale_alpha(0.1)))
-                }
-                _ => None,
-            };
-
-            button::Style {
-                background,
-                ..Default::default()
-            }
-        })
-}
-
-fn icon(theme: &iced::Theme, status: svg::Status) -> svg::Style {
-    let palette = theme.palette();
-
-    let color = match status {
-        svg::Status::Idle => Some(palette.text),
-        svg::Status::Hovered => Some(palette.primary),
-    };
-
-    svg::Style { color }
 }
 
 async fn open_file(path: impl Into<PathBuf>) -> Arc<String> {
