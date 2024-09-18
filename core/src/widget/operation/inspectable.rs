@@ -48,6 +48,7 @@ pub struct Properties {
     pub name: String,
     pub location: Location<'static>,
     pub specific: Specific,
+    pub messages: Specific,
 }
 
 impl Inspectable for Properties {

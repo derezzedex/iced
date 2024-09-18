@@ -1,8 +1,12 @@
 use iced::advanced::widget::operation::inspectable;
 use iced::widget::{
-    canvas, column, container, row, scrollable, text, text_editor, Column,
+    canvas, column, container, row, rule, scrollable, svg, text, text_editor,
+    Column, Rule,
 };
-use iced::{highlighter, mouse, Color, Element, Fill, Length, Padding, Task};
+use iced::Alignment::Center;
+use iced::{
+    highlighter, mouse, Background, Color, Element, Fill, Length, Padding, Task,
+};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -94,6 +98,7 @@ impl Inspector {
 
     pub fn view(&self) -> Element<Message> {
         let text_editor = text_editor(&self.content)
+            .height(Fill)
             .font(iced::Font::MONOSPACE)
             .size(12)
             .on_action(Message::EditorAction)
@@ -102,16 +107,36 @@ impl Inspector {
         let properties: iced::Element<Message> = if let Some(element) =
             &self.highlighted
         {
-            properties(element)
+            scrollable(properties(element)).into()
         } else {
-            container(text!("Highlight some widget to see it's properties."))
-                .padding(16)
+            container(
+            column![
+                        text!("Highlight a widget to see it's properties")
+                        .size(12)
+                            .font(iced::Font {
+                                weight: iced::font::Weight::Bold,
+                                ..Default::default()
+                            }),
+                        row![
+                            super::hover_cursor().width(14).height(14).style(
+                                |theme: &iced::Theme, _| svg::Style {
+                                    color: Some(theme.palette().text),
+                                }
+                            ),
+                            text!("You can toggle the widget hovering on the top left")
+                                .size(12),
+                        ].spacing(2).align_y(Center),
+                    ]
+                    .spacing(8)
+                    .align_x(Center),
+                )
+                .center(Fill)
                 .into()
         };
 
         row![
             container(text_editor).width(Length::FillPortion(2)),
-            scrollable(properties).width(Fill)
+            properties
         ]
         .into()
     }
@@ -120,26 +145,67 @@ impl Inspector {
 fn properties<'a, Message: 'a>(
     element: &'a inspectable::Element,
 ) -> Element<'a, Message> {
-    let specific = element.properties.specific.fields();
+    let rule = || {
+        Rule::horizontal(1).style(|theme: &iced::Theme| rule::Style {
+            color: theme.extended_palette().background.strong.color,
+            width: 1,
+            ..rule::default(theme)
+        })
+    };
+
+    let title = |name: &str| {
+        container(column![
+            rule(),
+            container(
+                text(name.to_owned())
+                    .font(iced::Font {
+                        weight: iced::font::Weight::Bold,
+                        ..Default::default()
+                    })
+                    .size(12)
+            )
+            .padding(4),
+            rule(),
+        ])
+        .width(Fill)
+        .style(|theme: &iced::Theme| container::Style {
+            background: Some(Background::Color(
+                theme
+                    .extended_palette()
+                    .background
+                    .strong
+                    .color
+                    .scale_alpha(0.05),
+            )),
+            ..Default::default()
+        })
+    };
 
     column![
-        text("Properties").size(18),
-        Column::from_iter(specific.iter().map(|(name, value)| {
-            row![
-                text(name).center().color(LIGHT_BLUE),
-                text(
-                    inspectable::to_string_pretty(value)
-                        .unwrap_or(String::from("None"))
-                )
-                .color(LIGHT_PINK)
-            ]
-            .padding(4)
-            .spacing(8)
-            .into()
-        })),
+        title(element.properties.name.as_str()),
+        specific(&element.properties.specific),
+        title("Messages"),
+        specific(&element.properties.messages),
     ]
-    .spacing(8)
-    .padding(16)
+    .into()
+}
+
+fn specific<'a, Message: 'a>(
+    specific: &'a inspectable::Specific,
+) -> Element<'a, Message> {
+    Column::from_iter(specific.fields().iter().map(|(name, value)| {
+        row![
+            text(name).center().color(LIGHT_BLUE),
+            text(
+                inspectable::to_string_pretty(value)
+                    .unwrap_or(String::from("None"))
+            )
+            .color(LIGHT_PINK)
+        ]
+        .spacing(8)
+        .into()
+    }))
+    .padding([4.0, 8.0])
     .into()
 }
 

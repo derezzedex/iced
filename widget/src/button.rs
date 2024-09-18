@@ -1,23 +1,4 @@
-//! Buttons allow your users to perform actions by pressing them.
-//!
-//! # Example
-//! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
-//! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-//! use iced::widget::button;
-//!
-//! #[derive(Clone)]
-//! enum Message {
-//!     ButtonPressed,
-//! }
-//!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     button("Press me!").on_press(Message::ButtonPressed).into()
-//! }
-//! ```
-use iced_runtime::core::widget::operation::inspectable;
-
+//! Allow your users to perform actions by pressing a button.
 use crate::core::border::{self, Border};
 use crate::core::event::{self, Event};
 use crate::core::layout;
@@ -35,6 +16,7 @@ use crate::core::{
 
 #[cfg(feature = "inspector")]
 use crate::core::widget::operation::{self, inspectable};
+use std::fmt::Debug;
 
 /// A generic widget that produces a message when pressed.
 ///
@@ -216,7 +198,7 @@ pub struct State {
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Button<'a, Message, Theme, Renderer>
 where
-    Message: 'a + Clone,
+    Message: 'a + Clone + Debug,
     Renderer: 'a + crate::core::Renderer,
     Theme: Catalog,
 {
@@ -281,6 +263,11 @@ where
                 clip: bool,
             }
 
+            #[derive(inspectable::Serialize, inspectable::Deserialize)]
+            struct Messages {
+                on_press: Option<String>,
+            }
+
             let specific = inspectable::Specific::serialize(Properties {
                 padding: self.padding,
                 width: self.width,
@@ -288,11 +275,20 @@ where
                 clip: self.clip,
             });
 
+            let messages = inspectable::Specific::serialize(Messages {
+                on_press: self
+                    .on_press
+                    .as_ref()
+                    .map(OnPress::get)
+                    .map(|message| format!("{message:#?}")),
+            });
+
             operation.inspectable(
                 &mut inspectable::Properties {
                     name: String::from("Button"),
                     location: self.location,
                     specific,
+                    messages,
                 },
                 None,
                 layout.bounds(),
@@ -479,7 +475,7 @@ where
 impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Message: Clone + 'a,
+    Message: Debug + Clone + 'a,
     Theme: Catalog + 'a,
     Renderer: crate::core::Renderer + 'a,
 {
