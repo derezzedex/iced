@@ -9,5 +9,11 @@ publish = false
 iced.workspace = true
 iced.features = ["advanced", "canvas", "highlighter", "tokio", "inspector", "svg"]
 
+log.workspace = true
+tracing.workspace = true
+tracing-subscriber = "0.3"
+tracing-log = "0.2"
+chrono = "0.4"
+
 tokio.workspace = true
-tokio.features = ["fs"]
+tokio.features = ["fs", "sync"]

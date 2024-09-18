@@ -4,17 +4,27 @@ use iced::widget::pane_grid;
 use iced::widget::{canvas, container, stack, PaneGrid};
 use iced::{Background, Color, Element, Fill, Task};
 
+use tokio::sync::mpsc;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+
 mod example;
 use example::*;
 
 mod tools;
 use tools::*;
+use tracing_subscriber::Layer;
 
 pub fn main() -> iced::Result {
+    let (logger, receiver) = terminal::Logger::new();
+    tracing_subscriber::registry()
+        .with(logger.with_filter(tracing::level_filters::LevelFilter::INFO))
+        .init();
+
     iced::application("A cool inspector", Devtools::update, Devtools::view)
         .theme(Devtools::theme)
         .subscription(Devtools::subscription)
-        .run_with(Devtools::new)
+        .run_with(move || Devtools::new(receiver))
 }
 
 enum Pane<Content> {
@@ -49,7 +59,9 @@ enum Message {
 }
 
 impl Devtools {
-    fn new() -> (Self, iced::Task<Message>) {
+    fn new(
+        receiver: mpsc::Receiver<terminal::Log>,
+    ) -> (Self, iced::Task<Message>) {
         let content = Pane::Content(Example::default());
         let (mut panes, content) = pane_grid::State::new(content);
         let editor = panes
@@ -68,7 +80,12 @@ impl Devtools {
                 overlay: None,
                 element_selector: true,
             },
-            widget::operate(inspectable::map()).map(Message::Inspected),
+            Task::batch(vec![
+                widget::operate(inspectable::map()).map(Message::Inspected),
+                Task::run(terminal::run(receiver), |message| {
+                    Message::Tools(tools::Message::Terminal(message))
+                }),
+            ]),
         )
     }
     fn update(&mut self, message: Message) -> iced::Task<Message> {
@@ -113,7 +130,7 @@ impl Devtools {
                         Some(Event::HoverToggled) => {
                             self.element_selector = !self.element_selector;
                             if let Some(overlay) = &mut self.overlay {
-                                overlay.locked = !self.element_selector;
+                                overlay.hover_allowed = !overlay.hover_allowed;
                             }
                         }
                         Some(Event::Close) => {

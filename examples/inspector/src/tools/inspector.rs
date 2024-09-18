@@ -153,12 +153,15 @@ async fn open_file(path: impl Into<PathBuf>) -> Arc<String> {
 
 pub struct Overlay {
     map: inspectable::Map,
-    pub locked: bool,
+    pub hover_allowed: bool,
 }
 
 impl Overlay {
     pub fn new(map: inspectable::Map, locked: bool) -> Self {
-        Self { map, locked }
+        Self {
+            map,
+            hover_allowed: locked,
+        }
     }
 }
 
@@ -188,7 +191,7 @@ impl canvas::Program<Message> for Overlay {
     ) -> (canvas::event::Status, Option<Message>) {
         match event {
             canvas::Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                if self.locked {
+                if !self.hover_allowed {
                     return (canvas::event::Status::Ignored, None);
                 }
 

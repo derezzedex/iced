@@ -1,38 +1,31 @@
+use std::fmt;
+
+use iced::alignment::Vertical;
 use iced::widget::{
-    button, column, container, horizontal_space, pane_grid, row, svg, text,
-    Button, Svg,
+    button, column, container, horizontal_space, pane_grid, row, rule, svg,
+    text, Button, Rule, Svg,
 };
-use iced::{Background, Color, Element, Fill, Shrink, Task};
+use iced::{padding, Background, Color, Element, FillPortion, Task};
 
 pub mod inspector;
 pub use inspector::*;
 
-#[derive(Debug, Clone)]
+pub mod terminal;
+pub use terminal::Terminal;
+
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum Kind {
-    Inspector { hover_allowed: bool },
+    #[default]
+    Inspector,
+    Terminal,
 }
 
-impl Kind {
-    pub fn is_hover_allowed(&self) -> bool {
-        match self {
-            Kind::Inspector { hover_allowed } => *hover_allowed,
-        }
-    }
-
-    fn toggle_hover(&mut self) {
-        match self {
-            Self::Inspector { hover_allowed } => {
-                *hover_allowed = !*hover_allowed
-            }
-        }
-    }
-}
-
-impl Default for Kind {
-    fn default() -> Self {
-        Self::Inspector {
-            hover_allowed: true,
-        }
+impl fmt::Display for Kind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Kind::Inspector => "Inspector",
+            Kind::Terminal => "Terminal",
+        })
     }
 }
 
@@ -64,13 +57,17 @@ pub enum Event {
 #[derive(Default)]
 pub struct Tools {
     selected: Kind,
+    hover_cursor: bool,
     layout: Layout,
     inspector: Inspector,
+    terminal: Terminal,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    ChangeTab(Kind),
     Inspector(inspector::Message),
+    Terminal(terminal::Message),
     Close,
     ChangeLayout(Layout),
     ToggleHover,
@@ -82,11 +79,18 @@ impl Tools {
         message: Message,
     ) -> (Option<Event>, Task<Message>) {
         match message {
+            Message::Terminal(message) => {
+                (None, self.terminal.update(message).map(Message::Terminal))
+            }
             Message::Inspector(message) => {
                 (None, self.inspector.update(message).map(Message::Inspector))
             }
+            Message::ChangeTab(selected) => {
+                self.selected = selected;
+                (None, Task::none())
+            }
             Message::ToggleHover => {
-                self.selected.toggle_hover();
+                self.hover_cursor = !self.hover_cursor;
 
                 (Some(Event::HoverToggled), Task::none())
             }
@@ -99,46 +103,50 @@ impl Tools {
     }
 
     pub fn view(&self) -> Element<Message> {
-        let element_selector = icon_button(
-            element_selector().style(icon),
-            self.selected.is_hover_allowed(),
+        let hover_cursor = icon_button(
+            hover_cursor(),
+            self.hover_cursor,
             Message::ToggleHover,
         )
-        .padding([2.0, 4.0]);
+        .padding(4);
 
-        let title = container(text("Inspector").center()).padding([0.0, 4.0]);
+        let tabs = row![
+            tab_button(Kind::Inspector, &self.selected,),
+            tab_button(Kind::Terminal, &self.selected,),
+        ];
 
         let controls = row![
             icon_button(
-                bottom_layout().style(icon),
+                bottom_layout(),
                 self.layout == Layout::Bottom,
                 Message::ChangeLayout(Layout::Bottom)
             ),
             icon_button(
-                left_layout().style(icon),
+                left_layout(),
                 self.layout == Layout::Left,
                 Message::ChangeLayout(Layout::Left)
             ),
             icon_button(
-                right_layout().style(icon),
+                right_layout(),
                 self.layout == Layout::Right,
                 Message::ChangeLayout(Layout::Right)
             ),
             horizontal_space().width(4),
-            icon_button(close().style(icon), false, Message::Close),
+            icon_button(close(), false, Message::Close),
         ];
 
         let content = match self.selected {
             Kind::Inspector { .. } => {
                 self.inspector.view().map(Message::Inspector)
             }
+            Kind::Terminal => self.terminal.view().map(Message::Terminal),
         };
 
         container(column![
             row![
-                element_selector,
-                title,
-                horizontal_space().width(Fill),
+                hover_cursor,
+                tabs,
+                horizontal_space().width(FillPortion(4)),
                 controls
             ],
             content,
@@ -151,81 +159,145 @@ impl Tools {
     }
 }
 
-fn close<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/close-x.svg"
-    )))
-    .width(Shrink)
-    .height(Shrink)
-}
+fn tab_button(kind: Kind, selected: &Kind) -> Element<Message> {
+    let is_selected = kind == *selected;
 
-fn bottom_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/layout-bottom.svg"
-    )))
-    .width(Shrink)
-    .height(Shrink)
-}
+    let icon = match kind {
+        Kind::Terminal => terminal(),
+        Kind::Inspector { .. } => inspector(),
+    }
+    .style(move |theme: &iced::Theme, _| svg::Style {
+        color: Some(active(theme, is_selected)),
+    });
 
-fn left_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/layout-left.svg"
-    )))
-    .width(Shrink)
-    .height(Shrink)
-}
+    let content = column![
+        Rule::horizontal(2).style(move |theme: &iced::Theme| rule::Style {
+            color: active(theme, is_selected),
+            width: 2,
+            ..rule::default(theme)
+        },),
+        row![icon, text(kind.to_string()).size(14).center()]
+            .spacing(4)
+            .padding(2)
+            .align_y(Vertical::Center),
+    ];
 
-fn right_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/layout-right.svg"
-    )))
-    .width(Shrink)
-    .height(Shrink)
-}
-
-fn element_selector<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/element-selector.svg"
-    )))
-    .width(Shrink)
-    .height(Shrink)
-}
-
-fn icon_button<'a, Message: 'a>(
-    content: impl Into<Element<'a, Message>>,
-    active: bool,
-    message: Message,
-) -> Button<'a, Message> {
     button(content)
-        .padding(2)
-        .on_press(message)
+        .padding(padding::all(2).top(0))
+        .on_press(Message::ChangeTab(kind))
         .style(move |theme, status| {
             let palette = theme.palette();
 
             let background = match status {
-                button::Status::Active | button::Status::Hovered if active => {
-                    Some(Background::Color(palette.text.scale_alpha(0.1)))
-                }
-                button::Status::Pressed => {
-                    Some(Background::Color(palette.text.scale_alpha(0.1)))
+                button::Status::Hovered | button::Status::Pressed => {
+                    Some(Background::Color(palette.text.scale_alpha(0.05)))
                 }
                 _ => None,
             };
 
             button::Style {
                 background,
+                text_color: active(theme, is_selected),
+                ..Default::default()
+            }
+        })
+        .into()
+}
+
+fn close<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/close-x.svg"
+    )))
+    .width(16)
+    .height(16)
+}
+
+fn bottom_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/layout-bottom.svg"
+    )))
+    .width(16)
+    .height(16)
+}
+
+fn left_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/layout-left.svg"
+    )))
+    .width(16)
+    .height(16)
+}
+
+fn right_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/layout-right.svg"
+    )))
+    .width(16)
+    .height(16)
+}
+
+fn hover_cursor<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/hover-cursor.svg"
+    )))
+    .width(16)
+    .height(16)
+}
+
+fn inspector<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/inspector.svg"
+    )))
+    .width(16)
+    .height(16)
+}
+
+fn terminal<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/terminal.svg"
+    )))
+    .width(16)
+    .height(16)
+}
+
+fn icon_button<'a, Message: 'a>(
+    content: Svg<'a>,
+    is_active: bool,
+    message: Message,
+) -> Button<'a, Message> {
+    button(content.style(move |theme, _| icon(theme, is_active)))
+        .padding(2)
+        .on_press(message)
+        .style(move |theme, status| {
+            let palette = theme.palette();
+
+            let background = match status {
+                button::Status::Hovered | button::Status::Pressed => {
+                    Some(Background::Color(palette.text.scale_alpha(0.05)))
+                }
+                _ => None,
+            };
+
+            button::Style {
+                background,
+                text_color: active(theme, is_active),
                 ..Default::default()
             }
         })
 }
 
-fn icon(theme: &iced::Theme, status: svg::Status) -> svg::Style {
+fn active(theme: &iced::Theme, is_active: bool) -> Color {
     let palette = theme.palette();
 
-    let color = match status {
-        svg::Status::Idle => Some(palette.text),
-        svg::Status::Hovered => Some(palette.primary),
-    };
+    if is_active {
+        palette.primary
+    } else {
+        palette.text
+    }
+}
 
-    svg::Style { color }
+fn icon(theme: &iced::Theme, is_active: bool) -> svg::Style {
+    svg::Style {
+        color: Some(active(theme, is_active)),
+    }
 }
