@@ -35,6 +35,7 @@ pub enum Layout {
     Bottom,
     Left,
     Right,
+    Windowed,
 }
 
 impl Layout {
@@ -43,6 +44,7 @@ impl Layout {
             Layout::Bottom => pane_grid::Edge::Bottom,
             Layout::Left => pane_grid::Edge::Left,
             Layout::Right => pane_grid::Edge::Right,
+            Layout::Windowed => pane_grid::Edge::Bottom,
         }
     }
 }
@@ -130,6 +132,11 @@ impl Tools {
                 right_layout(),
                 self.layout == Layout::Right,
                 Message::ChangeLayout(Layout::Right)
+            ),
+            icon_button(
+                new_window(),
+                self.layout == Layout::Windowed,
+                Message::ChangeLayout(Layout::Windowed)
             ),
             horizontal_space().width(4),
             icon_button(close(), false, Message::Close),
@@ -255,6 +262,14 @@ fn inspector<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
 fn terminal<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
     Svg::new(svg::Handle::from_memory(include_bytes!(
         "../assets/terminal.svg"
+    )))
+    .width(16)
+    .height(16)
+}
+
+fn new_window<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
+    Svg::new(svg::Handle::from_memory(include_bytes!(
+        "../assets/new-window.svg"
     )))
     .width(16)
     .height(16)

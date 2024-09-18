@@ -220,22 +220,23 @@ impl Terminal {
         let content: Element<Message> = if logs.len() == 0 {
             container(
                 column![
-                    text("No logs found").font(
-                        iced::Font {
-                            weight: iced::font::Weight::Bold,
-                            ..Default::default()
-                        }
-                    ),
+                    text("No logs found").font(iced::Font {
+                        weight: iced::font::Weight::Bold,
+                        ..Default::default()
+                    }),
                     row![
                         filter().width(14).height(14).style(
-                        move |theme: &iced::Theme, _status| {
-                            svg::Style {
-                                color: Some(theme.palette().text),
+                            move |theme: &iced::Theme, _status| {
+                                svg::Style {
+                                    color: Some(theme.palette().text),
+                                }
                             }
-                        }
-                    ),
-                    text("You can tweak the filter options in the top bar").size(14)
-                    ].spacing(4).align_y(Center)
+                        ),
+                        text("You can tweak the filter options in the top bar")
+                            .size(14)
+                    ]
+                    .spacing(4)
+                    .align_y(Center)
                 ]
                 .align_x(Center)
                 .spacing(8),

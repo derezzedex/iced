@@ -2,7 +2,9 @@ use iced::advanced::widget;
 use iced::advanced::widget::operation::inspectable;
 use iced::widget::pane_grid;
 use iced::widget::{canvas, container, stack, PaneGrid};
-use iced::{Background, Color, Element, Fill, Task};
+use iced::{
+    window, Background, Color, Element, Fill, Size, Subscription, Task,
+};
 
 use tokio::sync::mpsc;
 use tracing_subscriber::layer::SubscriberExt;
@@ -34,7 +36,7 @@ pub fn main() -> iced::Result {
         )
         .init();
 
-    iced::application("iced_devtools", Devtools::update, Devtools::view)
+    iced::daemon("iced_devtools", Devtools::update, Devtools::view)
         .theme(Devtools::theme)
         .subscription(Devtools::subscription)
         .run_with(move || Devtools::new(receiver))
@@ -42,21 +44,39 @@ pub fn main() -> iced::Result {
 
 enum Pane<Content> {
     Content(Content),
-    Tools(Tools),
+    Devtools,
 }
 
 impl<Content> std::fmt::Debug for Pane<Content> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Pane::Content { .. } => f.write_str("Pane::Content"),
-            Pane::Tools(_) => f.write_str("Pane::Devtools"),
+            Pane::Devtools => f.write_str("Pane::Devtools"),
         }
+    }
+}
+
+enum Editor {
+    Closed,
+    Pane(pane_grid::Pane),
+    Window(window::Id),
+}
+
+impl Editor {
+    fn pane(&mut self) -> Option<&mut pane_grid::Pane> {
+        if let Editor::Pane(pane) = self {
+            return Some(pane);
+        }
+
+        None
     }
 }
 
 struct Devtools {
     content: pane_grid::Pane,
-    editor: Option<pane_grid::Pane>,
+    window: window::Id,
+    tools: Tools,
+    editor: Editor,
     panes: pane_grid::State<Pane<Example>>,
     overlay: Option<inspector::Overlay>,
     element_selector: bool,
@@ -66,6 +86,7 @@ struct Devtools {
 enum Message {
     Example(ExampleMessage),
     WindowResized,
+    WindowClosed(window::Id),
     PaneResized(pane_grid::ResizeEvent),
     Inspected(inspectable::Map),
     Tools(tools::Message),
@@ -78,22 +99,23 @@ impl Devtools {
         let content = Pane::Content(Example::default());
         let (mut panes, content) = pane_grid::State::new(content);
         let editor = panes
-            .split(
-                pane_grid::Axis::Horizontal,
-                content,
-                Pane::Tools(Tools::default()),
-            )
-            .map(|(editor, _)| editor);
+            .split(pane_grid::Axis::Horizontal, content, Pane::Devtools)
+            .map_or(Editor::Closed, |(pane, _)| Editor::Pane(pane));
+
+        let (window, task) = window::open(window::Settings::default());
 
         (
             Self {
+                window,
                 content,
                 editor,
                 panes,
+                tools: Tools::default(),
                 overlay: None,
                 element_selector: true,
             },
             Task::batch(vec![
+                task.discard(),
                 widget::operate(inspectable::map()).map(Message::Inspected),
                 Task::run(terminal::run(receiver), |message| {
                     Message::Tools(tools::Message::Terminal(message))
@@ -101,8 +123,13 @@ impl Devtools {
             ]),
         )
     }
-    fn update(&mut self, message: Message) -> iced::Task<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::WindowClosed(id) => {
+                if id == self.window {
+                    return iced::exit();
+                }
+            }
             Message::Example(message) => {
                 if let Some(Pane::Content(content)) =
                     self.panes.get_mut(self.content)
@@ -132,84 +159,128 @@ impl Devtools {
                 self.overlay = Some(Overlay::new(map, !self.element_selector));
             }
             Message::Tools(message) => {
-                if let Some(Pane::Tools(editor)) = self
-                    .editor
-                    .map(|editor| self.panes.get_mut(editor))
-                    .flatten()
-                {
-                    let (event, task) = editor.update(message);
-                    match event {
-                        None => {}
-                        Some(Event::HoverToggled) => {
-                            self.element_selector = !self.element_selector;
-                            if let Some(overlay) = &mut self.overlay {
-                                overlay.hover_allowed = !overlay.hover_allowed;
-                            }
-                        }
-                        Some(Event::Close) => {
-                            self.editor
-                                .take()
-                                .map(|editor| self.panes.close(editor));
+                let (event, mut task) = self.tools.update(message);
 
-                            self.overlay.take();
-                        }
-                        Some(Event::LayoutChanged(layout)) => {
-                            if let Some(editor) = &mut self.editor {
-                                if let Some((pane, _)) = self
-                                    .panes
-                                    .move_to_edge(*editor, layout.to_edge())
-                                {
-                                    *editor = pane;
-                                }
-                            }
-
-                            self.overlay.take();
+                match event {
+                    None => {}
+                    Some(Event::HoverToggled) => {
+                        self.element_selector = !self.element_selector;
+                        if let Some(overlay) = &mut self.overlay {
+                            overlay.hover_allowed = !overlay.hover_allowed;
                         }
                     }
+                    Some(Event::Close) => {
+                        self.editor
+                            .pane()
+                            .map(|editor| self.panes.close(*editor));
 
-                    return task.map(Message::Tools);
+                        self.overlay.take();
+                    }
+                    Some(Event::LayoutChanged(layout)) => {
+                        match layout {
+                            Layout::Windowed => match self.editor {
+                                Editor::Closed | Editor::Window(_) => {}
+                                Editor::Pane(editor) => {
+                                    self.panes.close(editor);
+
+                                    let (window, open) =
+                                        window::open(window::Settings {
+                                            size: Size::new(1024.0, 480.0),
+                                            ..Default::default()
+                                        });
+                                    self.editor = Editor::Window(window);
+                                    task = task.chain(open.discard());
+                                }
+                            },
+                            layout => match &mut self.editor {
+                                Editor::Closed => {}
+                                Editor::Window(id) => {
+                                    task =
+                                        task.chain(window::close(id.clone()));
+                                    self.editor = self
+                                        .panes
+                                        .split(
+                                            pane_grid::Axis::Horizontal,
+                                            self.content,
+                                            Pane::Devtools,
+                                        )
+                                        .and_then(|(pane, _)| {
+                                            self.panes.move_to_edge(
+                                                pane,
+                                                layout.to_edge(),
+                                            )
+                                        })
+                                        .map_or(Editor::Closed, |(pane, _)| {
+                                            Editor::Pane(pane)
+                                        });
+                                }
+                                Editor::Pane(editor) => {
+                                    if let Some((pane, _)) = self
+                                        .panes
+                                        .move_to_edge(*editor, layout.to_edge())
+                                    {
+                                        *editor = pane;
+                                    }
+                                }
+                            },
+                        }
+
+                        self.overlay.take();
+                    }
                 }
+
+                return task.map(Message::Tools);
             }
         }
 
         iced::Task::none()
     }
 
-    fn view(&self) -> Element<Message> {
-        PaneGrid::new(&self.panes, |_, pane, _| match pane {
-            Pane::Content(content) => {
-                let overlay = self.overlay.as_ref().map(|p| {
-                    Element::from(canvas(p).width(Fill).height(Fill)).map(
-                        |message| {
-                            Message::Tools(tools::Message::Inspector(message))
-                        },
-                    )
-                });
-
-                pane_grid::Content::new(
-                    stack![content.view().map(Message::Example)]
-                        .push_maybe(overlay),
-                )
+    fn view(&self, id: window::Id) -> Element<Message> {
+        match self.editor {
+            Editor::Window(window) if id == window => {
+                self.tools.view().map(Message::Tools)
             }
-            Pane::Tools(tools) => pane_grid::Content::new(
-                tools.view().map(Message::Tools),
-            )
-            .style(|_| container::Style {
-                background: Some(Background::Color(Color::from_rgb(
-                    0.15, 0.15, 0.15,
-                ))),
-                ..Default::default()
-            }),
-        })
-        .on_resize(10, Message::PaneResized)
-        .into()
+            _ => PaneGrid::new(&self.panes, |_, pane, _| match pane {
+                Pane::Content(content) => {
+                    let overlay = self.overlay.as_ref().map(|p| {
+                        Element::from(canvas(p).width(Fill).height(Fill)).map(
+                            |message| {
+                                Message::Tools(tools::Message::Inspector(
+                                    message,
+                                ))
+                            },
+                        )
+                    });
+
+                    pane_grid::Content::new(
+                        stack![content.view().map(Message::Example)]
+                            .push_maybe(overlay),
+                    )
+                }
+                Pane::Devtools => pane_grid::Content::new(
+                    self.tools.view().map(Message::Tools),
+                )
+                .style(|_| container::Style {
+                    background: Some(Background::Color(Color::from_rgb(
+                        0.15, 0.15, 0.15,
+                    ))),
+                    ..Default::default()
+                }),
+            })
+            .on_resize(10, Message::PaneResized)
+            .into(),
+        }
     }
 
-    fn subscription(&self) -> iced::Subscription<Message> {
-        iced::window::resize_events().map(|(_, _)| Message::WindowResized)
+    fn subscription(&self) -> Subscription<Message> {
+        Subscription::batch(vec![
+            window::resize_events().map(|(_, _)| Message::WindowResized),
+            window::close_events().map(Message::WindowClosed),
+        ])
     }
 
-    fn theme(&self) -> iced::Theme {
+    fn theme(&self, _id: window::Id) -> iced::Theme {
         iced::Theme::Dark
     }
 }
