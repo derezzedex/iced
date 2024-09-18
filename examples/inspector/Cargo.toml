@@ -11,7 +11,7 @@ iced.features = ["advanced", "canvas", "highlighter", "tokio", "inspector", "svg
 
 log.workspace = true
 tracing.workspace = true
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-log = "0.2"
 chrono = "0.4"
 

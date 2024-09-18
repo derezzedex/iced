@@ -13,15 +13,28 @@ use example::*;
 
 mod tools;
 use tools::*;
+use tracing_subscriber::EnvFilter;
 use tracing_subscriber::Layer;
 
 pub fn main() -> iced::Result {
     let (logger, receiver) = terminal::Logger::new();
     tracing_subscriber::registry()
-        .with(logger.with_filter(tracing::level_filters::LevelFilter::INFO))
+        .with(
+            logger.with_filter(
+                EnvFilter::builder()
+                    .with_default_directive(tracing::Level::TRACE.into())
+                    .from_env()
+                    .unwrap()
+                    .add_directive("winit=debug".parse().unwrap())
+                    .add_directive("iced_graphics=debug".parse().unwrap())
+                    .add_directive("cosmic_text=info".parse().unwrap())
+                    .add_directive("naga=info".parse().unwrap())
+                    .add_directive("wgpu=info".parse().unwrap()),
+            ),
+        )
         .init();
 
-    iced::application("A cool inspector", Devtools::update, Devtools::view)
+    iced::application("iced_devtools", Devtools::update, Devtools::view)
         .theme(Devtools::theme)
         .subscription(Devtools::subscription)
         .run_with(move || Devtools::new(receiver))
