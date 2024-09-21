@@ -189,10 +189,69 @@ where
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub struct State {
     is_pressed: bool,
+
+    #[cfg(feature = "inspector")]
+    properties: inspectable::Properties,
+}
+
+#[derive(inspectable::Serialize, inspectable::Deserialize)]
+#[cfg(feature = "inspector")]
+struct Properties {
+    padding: Padding,
+    width: Length,
+    height: Length,
+    clip: bool,
+}
+
+impl Properties {
+    fn new<'a, Message, Theme: Catalog, Renderer: crate::core::Renderer>(
+        button: &Button<'a, Message, Theme, Renderer>,
+    ) -> Self {
+        Self {
+            padding: button.padding,
+            width: button.width,
+            height: button.height,
+            clip: button.clip,
+        }
+    }
+
+    fn from_state(state: &State) -> Option<Self> {
+        state.properties.specific.clone().try_deserialize()
+    }
+
+    fn from_tree(tree: &Tree) -> Option<Self> {
+        let state = tree.state.downcast_ref();
+        Self::from_state(state)
+    }
+}
+
+#[derive(inspectable::Serialize, inspectable::Deserialize)]
+#[cfg(feature = "inspector")]
+struct Messages {
+    on_press: Option<String>,
+}
+
+impl Messages {
+    fn new<
+        'a,
+        Message: Clone + Debug,
+        Theme: Catalog,
+        Renderer: crate::core::Renderer,
+    >(
+        button: &Button<'a, Message, Theme, Renderer>,
+    ) -> Self {
+        Messages {
+            on_press: button
+                .on_press
+                .as_ref()
+                .map(OnPress::get)
+                .map(|message| format!("{message:#?}")),
+        }
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -207,7 +266,32 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::default())
+        #[cfg(not(feature = "inspector"))]
+        let state = State { is_pressed: false };
+
+        #[cfg(feature = "inspector")]
+        let state = {
+            let specific =
+                inspectable::Specific::serialize(Properties::new(self));
+
+            let messages =
+                inspectable::Specific::serialize(Messages::new(self));
+
+            let properties = inspectable::Properties {
+                id: crate::core::widget::Id::unique(),
+                name: String::from("Button"),
+                location: self.location,
+                specific,
+                messages,
+            };
+
+            State {
+                is_pressed: false,
+                properties,
+            }
+        };
+
+        tree::State::new(state)
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -231,19 +315,21 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout::padded(
-            limits,
-            self.width,
-            self.height,
-            self.padding,
-            |limits| {
-                self.content.as_widget().layout(
-                    &mut tree.children[0],
-                    renderer,
-                    limits,
-                )
-            },
-        )
+        let Properties {
+            padding,
+            width,
+            height,
+            ..
+        } = Properties::from_tree(tree)
+            .unwrap_or_else(|| Properties::new(self));
+
+        layout::padded(limits, width, height, padding, |limits| {
+            self.content.as_widget().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
+        })
     }
 
     fn operate(
@@ -255,44 +341,8 @@ where
     ) {
         #[cfg(feature = "inspector")]
         {
-            #[derive(inspectable::Serialize, inspectable::Deserialize)]
-            struct Properties {
-                padding: Padding,
-                width: Length,
-                height: Length,
-                clip: bool,
-            }
-
-            #[derive(inspectable::Serialize, inspectable::Deserialize)]
-            struct Messages {
-                on_press: Option<String>,
-            }
-
-            let specific = inspectable::Specific::serialize(Properties {
-                padding: self.padding,
-                width: self.width,
-                height: self.height,
-                clip: self.clip,
-            });
-
-            let messages = inspectable::Specific::serialize(Messages {
-                on_press: self
-                    .on_press
-                    .as_ref()
-                    .map(OnPress::get)
-                    .map(|message| format!("{message:#?}")),
-            });
-
-            operation.inspectable(
-                &mut inspectable::Properties {
-                    name: String::from("Button"),
-                    location: self.location,
-                    specific,
-                    messages,
-                },
-                None,
-                layout.bounds(),
-            );
+            let state = tree.state.downcast_mut::<State>();
+            operation.inspectable(&mut state.properties, None, layout.bounds());
         }
 
         operation.container(None, layout.bounds(), &mut |operation| {

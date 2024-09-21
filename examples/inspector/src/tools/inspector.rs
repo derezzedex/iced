@@ -1,17 +1,21 @@
+use iced::advanced::widget;
 use iced::advanced::widget::operation::inspectable;
 use iced::widget::{
-    canvas, column, container, row, rule, scrollable, svg, text, text_editor,
-    Column, Rule,
+    button, canvas, column, container, horizontal_space, row, rule, scrollable,
+    svg, text, text_editor, Column, Rule,
 };
 use iced::Alignment::Center;
 use iced::{
-    highlighter, mouse, Background, Color, Element, Fill, Length, Padding, Task,
+    highlighter, mouse, touch, Background, Color, Element, Fill, Length,
+    Padding, Task,
 };
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub struct Inspector {
     file: Option<String>,
+    locked: bool,
+    properties: Option<text_editor::Content>,
     highlighted: Option<inspectable::Element>,
     content: text_editor::Content,
     theme: highlighter::Theme,
@@ -22,6 +26,8 @@ impl Default for Inspector {
         Self {
             file: None,
             highlighted: None,
+            properties: None,
+            locked: false,
             content: text_editor::Content::new(),
             theme: highlighter::Theme::Base16Eighties,
         }
@@ -30,14 +36,58 @@ impl Default for Inspector {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Locked,
     Hovered(Option<inspectable::Element>),
     FileOpened(Arc<String>),
     EditorAction(text_editor::Action),
+    TogglePropertiesEdit,
+    PropertiesAction(text_editor::Action),
 }
 
 impl Inspector {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Locked => {
+                self.locked = !self.locked;
+
+                Task::none()
+            }
+            Message::TogglePropertiesEdit => {
+                match self.properties.as_mut() {
+                    None => {
+                        if let Some(specific) = self
+                            .highlighted
+                            .as_ref()
+                            .map(|el| &el.properties.specific)
+                        {
+                            self.properties =
+                                specific.to_string_pretty().map(|s| {
+                                    text_editor::Content::with_text(s.as_str())
+                                });
+                        }
+                    }
+                    Some(properties) => {
+                        if let Some(element) = &self.highlighted {
+                            let target = element.properties.id.clone();
+                            let specific = properties.text();
+
+                            return widget::operate(inspectable::edit(
+                                target, specific,
+                            ))
+                            .discard();
+                        }
+                    }
+                }
+
+                Task::none()
+            }
+            Message::PropertiesAction(action) => {
+                if let Some(properties) = &mut self.properties {
+                    properties.perform(action);
+                }
+
+                Task::none()
+            }
             Message::Hovered(Some(element)) => {
                 let file = element.properties.location.file().to_string();
                 let location = element.properties.location;
@@ -77,6 +127,10 @@ impl Inspector {
                 return Task::perform(open_file(file), Message::FileOpened);
             }
             Message::Hovered(None) => {
+                if self.locked {
+                    return Task::none();
+                }
+
                 self.highlighted = None;
 
                 Task::none()
@@ -107,7 +161,7 @@ impl Inspector {
         let properties: iced::Element<Message> = if let Some(element) =
             &self.highlighted
         {
-            scrollable(properties(element)).into()
+            scrollable(properties(self.properties.as_ref(), element)).into()
         } else {
             container(
             column![
@@ -142,7 +196,8 @@ impl Inspector {
     }
 }
 
-fn properties<'a, Message: 'a>(
+fn properties<'a>(
+    properties: Option<&'a text_editor::Content>,
     element: &'a inspectable::Element,
 ) -> Element<'a, Message> {
     let rule = || {
@@ -153,38 +208,46 @@ fn properties<'a, Message: 'a>(
         })
     };
 
-    let title = |name: &str| {
-        container(column![
-            rule(),
-            container(
-                text(name.to_owned())
-                    .font(iced::Font {
-                        weight: iced::font::Weight::Bold,
-                        ..Default::default()
-                    })
-                    .size(12)
-            )
-            .padding(4),
-            rule(),
-        ])
-        .width(Fill)
-        .style(|theme: &iced::Theme| container::Style {
-            background: Some(Background::Color(
-                theme
-                    .extended_palette()
-                    .background
-                    .strong
-                    .color
-                    .scale_alpha(0.05),
-            )),
-            ..Default::default()
-        })
+    let title = move |content: Element<'static, Message>| {
+        container(column![rule(), container(content).padding(4), rule(),])
+            .width(Fill)
+            .style(|theme: &iced::Theme| container::Style {
+                background: Some(Background::Color(
+                    theme
+                        .extended_palette()
+                        .background
+                        .strong
+                        .color
+                        .scale_alpha(0.05),
+                )),
+                ..Default::default()
+            })
     };
 
+    let properties =
+        properties.map_or(specific(&element.properties.specific), |editable| {
+            text_editor(editable)
+                .font(iced::Font::MONOSPACE)
+                .size(12)
+                .on_action(Message::PropertiesAction)
+                .highlight("json", highlighter::Theme::Base16Eighties)
+                .into()
+        });
+
     column![
-        title(element.properties.name.as_str()),
-        specific(&element.properties.specific),
-        title("Messages"),
+        title(
+            row![
+                text(element.properties.name.clone()),
+                text!("{:?}", element.properties.id).size(14),
+                horizontal_space(),
+                button("edit").on_press(Message::TogglePropertiesEdit),
+            ]
+            .align_y(Center)
+            .spacing(4)
+            .into()
+        ),
+        properties,
+        title("Messages".into()),
         specific(&element.properties.messages),
     ]
     .into()
@@ -235,6 +298,7 @@ impl Overlay {
 pub struct State {
     hovered: Option<inspectable::Element>,
     cache: canvas::Cache,
+    locked: bool,
 }
 
 pub const DARK_PURPLE: Color =
@@ -252,12 +316,28 @@ impl canvas::Program<Message> for Overlay {
         &self,
         state: &mut State,
         event: canvas::Event,
-        _bounds: iced::Rectangle,
-        _cursor: iced::advanced::mouse::Cursor,
+        bounds: iced::Rectangle,
+        cursor: iced::advanced::mouse::Cursor,
     ) -> (canvas::event::Status, Option<Message>) {
+        if !cursor.is_over(bounds) {
+            return (canvas::event::Status::Ignored, None);
+        }
+
         match event {
+            canvas::Event::Mouse(mouse::Event::ButtonPressed(
+                mouse::Button::Left,
+            )) => {
+                state.locked = !state.locked;
+
+                return if !state.locked {
+                    (canvas::event::Status::Captured, Some(Message::Locked))
+                } else {
+                    state.cache.clear();
+                    (canvas::event::Status::Ignored, None)
+                };
+            }
             canvas::Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                if !self.hover_allowed {
+                if !self.hover_allowed || state.locked {
                     return (canvas::event::Status::Ignored, None);
                 }
 
