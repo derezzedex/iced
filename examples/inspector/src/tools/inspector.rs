@@ -6,8 +6,7 @@ use iced::widget::{
 };
 use iced::Alignment::Center;
 use iced::{
-    highlighter, mouse, touch, Background, Color, Element, Fill, Length,
-    Padding, Task,
+    highlighter, mouse, Background, Color, Element, Fill, Length, Padding, Task,
 };
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -156,6 +155,7 @@ impl Inspector {
             .font(iced::Font::MONOSPACE)
             .size(12)
             .on_action(Message::EditorAction)
+            .wrapping(text::Wrapping::None)
             .highlight("rs", self.theme);
 
         let properties: iced::Element<Message> = if let Some(element) =
@@ -229,6 +229,7 @@ fn properties<'a>(
             text_editor(editable)
                 .font(iced::Font::MONOSPACE)
                 .size(12)
+                .wrapping(text::Wrapping::None)
                 .on_action(Message::PropertiesAction)
                 .highlight("json", highlighter::Theme::Base16Eighties)
                 .into()

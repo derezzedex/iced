@@ -15,7 +15,7 @@ use crate::core::{
 };
 
 #[cfg(feature = "inspector")]
-use crate::core::widget::operation::{self, inspectable};
+use crate::core::widget::operation::inspectable;
 use std::fmt::Debug;
 
 /// A generic widget that produces a message when pressed.

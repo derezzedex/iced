@@ -5,7 +5,7 @@ use iced::widget::{
     button, column, container, horizontal_space, pane_grid, row, rule, svg,
     text, Button, Rule, Svg,
 };
-use iced::{padding, Background, Color, Element, FillPortion, Task};
+use iced::{Background, Color, Element, Shrink, Task};
 
 pub mod inspector;
 pub use inspector::*;
@@ -150,12 +150,7 @@ impl Tools {
         };
 
         container(column![
-            row![
-                hover_cursor,
-                tabs,
-                horizontal_space().width(FillPortion(4)),
-                controls
-            ],
+            row![hover_cursor, tabs, horizontal_space(), controls],
             content,
         ])
         .style(|_| container::Style {
@@ -185,12 +180,13 @@ fn tab_button(kind: Kind, selected: &Kind) -> Element<Message> {
         },),
         row![icon, text(kind.to_string()).size(14).center()]
             .spacing(4)
-            .padding(2)
+            .padding(4)
             .align_y(Vertical::Center),
-    ];
+    ]
+    .width(Shrink);
 
     button(content)
-        .padding(padding::all(2).top(0))
+        .padding(0)
         .on_press(Message::ChangeTab(kind))
         .style(move |theme, status| {
             let palette = theme.palette();
