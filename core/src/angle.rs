@@ -4,6 +4,9 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use std::fmt::Display;
 use std::ops::{Add, AddAssign, Div, Mul, RangeInclusive, Rem, Sub, SubAssign};
 
+#[cfg(feature = "inspector")]
+use crate::widget::operation::inspectable;
+
 /// Degrees
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Degrees(pub f32);
@@ -73,6 +76,10 @@ impl num_traits::FromPrimitive for Degrees {
 
 /// Radians
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub struct Radians(pub f32);
 
 impl Radians {

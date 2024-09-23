@@ -3,7 +3,14 @@ use crate::{Color, Radians};
 
 use std::cmp::Ordering;
 
+#[cfg(feature = "inspector")]
+use crate::widget::operation::inspectable;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 /// A fill which transitions colors progressively along a direction, either linearly, radially (TBD),
 /// or conically (TBD).
 pub enum Gradient {
@@ -29,6 +36,10 @@ impl From<Linear> for Gradient {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 /// A point along the gradient vector where the specified [`color`] is unmixed.
 ///
 /// [`color`]: Self::color
@@ -44,6 +55,10 @@ pub struct ColorStop {
 
 /// A linear gradient.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub struct Linear {
     /// How the [`Gradient`] is angled within its bounds.
     pub angle: Radians,

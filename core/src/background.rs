@@ -1,8 +1,15 @@
 use crate::gradient::{self, Gradient};
 use crate::Color;
 
+#[cfg(feature = "inspector")]
+use crate::widget::operation::inspectable;
+
 /// The background of some element.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub enum Background {
     /// A solid color.
     Color(Color),

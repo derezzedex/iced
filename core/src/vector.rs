@@ -1,5 +1,12 @@
+#[cfg(feature = "inspector")]
+use crate::widget::operation::inspectable;
+
 /// A 2D vector.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub struct Vector<T = f32> {
     /// The X component of the [`Vector`]
     pub x: T,

@@ -277,12 +277,18 @@ where
             let messages =
                 inspectable::Specific::serialize(Messages::new(self));
 
+            let theme = crate::Theme::Dark;
+            let active = theme
+                .style(&<crate::Theme as Catalog>::default(), Status::Active);
+            let style = inspectable::Specific::serialize(active);
+
             let properties = inspectable::Properties {
                 id: crate::core::widget::Id::unique(),
                 name: String::from("Button"),
                 location: self.location,
                 specific,
                 messages,
+                style,
             };
 
             State {
@@ -557,6 +563,10 @@ pub enum Status {
 
 /// The style of a button.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub struct Style {
     /// The [`Background`] of the button.
     pub background: Option<Background>,

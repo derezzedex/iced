@@ -75,6 +75,7 @@ pub struct Properties {
     pub location: Location<'static>,
     pub specific: Specific,
     pub messages: Specific,
+    pub style: Specific,
 }
 
 impl PartialEq for Properties {

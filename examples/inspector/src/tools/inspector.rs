@@ -6,7 +6,8 @@ use iced::widget::{
 };
 use iced::Alignment::Center;
 use iced::{
-    highlighter, mouse, Background, Color, Element, Fill, Length, Padding, Task,
+    highlighter, mouse, padding, Background, Color, Element, Fill, Length,
+    Padding, Task,
 };
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -243,6 +244,7 @@ fn properties<'a>(
                 horizontal_space(),
                 button("edit").on_press(Message::TogglePropertiesEdit),
             ]
+            .padding(padding::right(8))
             .align_y(Center)
             .spacing(4)
             .into()
@@ -250,6 +252,8 @@ fn properties<'a>(
         properties,
         title("Messages".into()),
         specific(&element.properties.messages),
+        title("Style".into()),
+        specific(&element.properties.style),
     ]
     .into()
 }
@@ -330,12 +334,14 @@ impl canvas::Program<Message> for Overlay {
             )) => {
                 state.locked = !state.locked;
 
-                return if !state.locked {
-                    (canvas::event::Status::Captured, Some(Message::Locked))
-                } else {
+                if !state.locked {
                     state.cache.clear();
-                    (canvas::event::Status::Ignored, None)
-                };
+                }
+
+                return (
+                    canvas::event::Status::Captured,
+                    Some(Message::Locked),
+                );
             }
             canvas::Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 if !self.hover_allowed || state.locked {

@@ -1,7 +1,14 @@
 use palette::rgb::{Srgb, Srgba};
 
+#[cfg(feature = "inspector")]
+use crate::widget::operation::inspectable;
+
 /// A color in the `sRGB` color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub struct Color {
     /// Red component, 0.0 - 1.0
     pub r: f32,

@@ -1,8 +1,15 @@
 //! Draw lines around containers.
 use crate::{Color, Pixels};
 
+#[cfg(feature = "inspector")]
+use crate::widget::operation::inspectable;
+
 /// A border.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub struct Border {
     /// The color of the border.
     pub color: Color,
@@ -78,6 +85,10 @@ impl Border {
 /// The border radii for the corners of a graphics primitive in the order:
 /// top-left, top-right, bottom-right, bottom-left.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[cfg_attr(
+    feature = "inspector",
+    derive(inspectable::Serialize, inspectable::Deserialize)
+)]
 pub struct Radius {
     /// Top left radius
     pub top_left: f32,
