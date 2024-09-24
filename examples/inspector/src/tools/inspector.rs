@@ -1,16 +1,52 @@
 use iced::advanced::widget;
 use iced::advanced::widget::operation::inspectable;
 use iced::widget::{
-    button, canvas, column, container, horizontal_space, row, rule, scrollable,
-    svg, text, text_editor, Column, Rule,
+    button, canvas, column, container, horizontal_space, hover, row, rule,
+    scrollable, text, text_editor, Column, Rule,
 };
 use iced::Alignment::Center;
 use iced::{
-    highlighter, mouse, padding, Background, Color, Element, Fill, Length,
-    Padding, Task,
+    highlighter, mouse, Background, Element, Fill, Length, Padding, Task,
 };
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+
+use crate::style;
+use crate::style::{color, icon};
+
+#[derive(Debug, Clone)]
+pub enum Section {
+    Properties,
+    Messages,
+    Style,
+}
+
+#[derive(Clone, Copy)]
+struct ExpandedSections {
+    properties: bool,
+    messages: bool,
+    style: bool,
+}
+
+impl Default for ExpandedSections {
+    fn default() -> Self {
+        Self {
+            properties: true,
+            messages: false,
+            style: false,
+        }
+    }
+}
+
+impl ExpandedSections {
+    fn toggle(&mut self, section: Section) {
+        match section {
+            Section::Properties => self.properties = !self.properties,
+            Section::Messages => self.messages = !self.messages,
+            Section::Style => self.style = !self.style,
+        }
+    }
+}
 
 pub struct Inspector {
     file: Option<String>,
@@ -19,6 +55,7 @@ pub struct Inspector {
     highlighted: Option<inspectable::Element>,
     content: text_editor::Content,
     theme: highlighter::Theme,
+    expanded: ExpandedSections,
 }
 
 impl Default for Inspector {
@@ -30,6 +67,7 @@ impl Default for Inspector {
             locked: false,
             content: text_editor::Content::new(),
             theme: highlighter::Theme::Base16Eighties,
+            expanded: ExpandedSections::default(),
         }
     }
 }
@@ -42,11 +80,17 @@ pub enum Message {
     EditorAction(text_editor::Action),
     TogglePropertiesEdit,
     PropertiesAction(text_editor::Action),
+    SectionExpanded(Section),
 }
 
 impl Inspector {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::SectionExpanded(section) => {
+                self.expanded.toggle(section);
+
+                Task::none()
+            }
             Message::Locked => {
                 self.locked = !self.locked;
 
@@ -153,31 +197,30 @@ impl Inspector {
     pub fn view(&self) -> Element<Message> {
         let text_editor = text_editor(&self.content)
             .height(Fill)
-            .font(iced::Font::MONOSPACE)
-            .size(12)
+            .font(style::text_editor::FONT)
+            .size(14)
             .on_action(Message::EditorAction)
             .wrapping(text::Wrapping::None)
+            .style(style::text_editor::borderless)
             .highlight("rs", self.theme);
 
         let properties: iced::Element<Message> = if let Some(element) =
             &self.highlighted
         {
-            scrollable(properties(self.properties.as_ref(), element)).into()
+            scrollable(properties(
+                self.properties.as_ref(),
+                element,
+                self.expanded,
+            ))
+            .into()
         } else {
             container(
             column![
                         text!("Highlight a widget to see it's properties")
                         .size(12)
-                            .font(iced::Font {
-                                weight: iced::font::Weight::Bold,
-                                ..Default::default()
-                            }),
+                            .font(style::text::BOLD),
                         row![
-                            super::hover_cursor().width(14).height(14).style(
-                                |theme: &iced::Theme, _| svg::Style {
-                                    color: Some(theme.palette().text),
-                                }
-                            ),
+                            icon::hover_cursor().width(14).height(14).style(icon::text),
                             text!("You can toggle the widget hovering on the top left")
                                 .size(12),
                         ].spacing(2).align_y(Center),
@@ -200,6 +243,66 @@ impl Inspector {
 fn properties<'a>(
     properties: Option<&'a text_editor::Content>,
     element: &'a inspectable::Element,
+    expanded: ExpandedSections,
+) -> Element<'a, Message> {
+    let content =
+        properties.map_or(specific(&element.properties.specific), |editable| {
+            text_editor(editable)
+                .font(style::text_editor::FONT)
+                .size(12)
+                .wrapping(text::Wrapping::None)
+                .on_action(Message::PropertiesAction)
+                .highlight("json", highlighter::Theme::Base16Eighties)
+                .style(style::text_editor::borderless)
+                .into()
+        });
+
+    let properties = hover(
+        container(content).width(Fill),
+        container(
+            button(if properties.is_some() { "Save" } else { "Edit" })
+                .padding([2.0, 4.0])
+                .on_press(Message::TogglePropertiesEdit)
+                .style(button::primary),
+        )
+        .padding(5)
+        .align_top(Fill)
+        .align_right(Fill),
+    )
+    .into();
+
+    column![
+        row![
+            text(element.properties.name.to_owned()).font(style::text::BOLD),
+            horizontal_space(),
+            text!("{:?}", element.properties.id).size(12),
+        ]
+        .padding(8),
+        expandable(
+            "Properties",
+            expanded.properties.then_some(properties),
+            Message::SectionExpanded(Section::Properties)
+        ),
+        expandable(
+            "Messages",
+            expanded
+                .messages
+                .then(|| specific(&element.properties.messages)),
+            Message::SectionExpanded(Section::Messages)
+        ),
+        expandable(
+            "Style",
+            expanded.style.then(|| specific(&element.properties.style)),
+            Message::SectionExpanded(Section::Style)
+        ),
+    ]
+    .into()
+}
+
+fn expandable<'a>(
+    title: impl Into<Element<'a, Message>>,
+    content: Option<Element<'a, Message>>,
+    toggle: Message,
 ) -> Element<'a, Message> {
     let rule = || {
         Rule::horizontal(1).style(|theme: &iced::Theme| rule::Style {
@@ -209,52 +312,35 @@ fn properties<'a>(
         })
     };
 
-    let title = move |content: Element<'static, Message>| {
-        container(column![rule(), container(content).padding(4), rule(),])
-            .width(Fill)
-            .style(|theme: &iced::Theme| container::Style {
-                background: Some(Background::Color(
-                    theme
-                        .extended_palette()
-                        .background
-                        .strong
-                        .color
-                        .scale_alpha(0.05),
-                )),
-                ..Default::default()
-            })
+    let chevron = if content.is_none() {
+        icon::chevron_right().style(icon::text)
+    } else {
+        icon::chevron_down().style(icon::text)
     };
 
-    let properties =
-        properties.map_or(specific(&element.properties.specific), |editable| {
-            text_editor(editable)
-                .font(iced::Font::MONOSPACE)
-                .size(12)
-                .wrapping(text::Wrapping::None)
-                .on_action(Message::PropertiesAction)
-                .highlight("json", highlighter::Theme::Base16Eighties)
-                .into()
-        });
+    let title = container(
+        column![
+            rule(),
+            row![chevron, title.into()]
+                .padding(4)
+                .align_y(Center)
+                .spacing(4),
+        ]
+        .push_maybe(content.is_some().then_some(rule())),
+    )
+    .width(Fill);
 
-    column![
-        title(
-            row![
-                text(element.properties.name.clone()),
-                text!("{:?}", element.properties.id).size(14),
-                horizontal_space(),
-                button("edit").on_press(Message::TogglePropertiesEdit),
-            ]
-            .padding(padding::right(8))
-            .align_y(Center)
-            .spacing(4)
-            .into()
-        ),
-        properties,
-        title("Messages".into()),
-        specific(&element.properties.messages),
-        title("Style".into()),
-        specific(&element.properties.style),
-    ]
+    column![button(title).padding(0).on_press(toggle).style(
+        |theme: &iced::Theme, status| button::Style {
+            background: if matches!(status, button::Status::Hovered) {
+                Some(Background::Color(theme.palette().text.scale_alpha(0.05)))
+            } else {
+                None
+            },
+            ..button::text(theme, status)
+        }
+    )]
+    .push_maybe(content)
     .into()
 }
 
@@ -263,12 +349,12 @@ fn specific<'a, Message: 'a>(
 ) -> Element<'a, Message> {
     Column::from_iter(specific.fields().iter().map(|(name, value)| {
         row![
-            text(name).center().color(LIGHT_BLUE),
+            text(name).center().color(color::LIGHT_BLUE),
             text(
                 inspectable::to_string_pretty(value)
                     .unwrap_or(String::from("None"))
             )
-            .color(LIGHT_PINK)
+            .color(color::LIGHT_PINK)
         ]
         .spacing(8)
         .into()
@@ -305,14 +391,6 @@ pub struct State {
     cache: canvas::Cache,
     locked: bool,
 }
-
-pub const DARK_PURPLE: Color =
-    Color::from_rgb(73.0 / 255.0, 65.0 / 255.0, 136.0 / 255.0);
-pub const LIGHT_PINK: Color =
-    Color::from_rgb(1.0, 128.0 / 255.0, 238.0 / 255.0);
-pub const BLUE: Color = Color::from_rgb(0.0, 143.0 / 255.0, 214.0 / 255.0);
-pub const LIGHT_BLUE: Color =
-    Color::from_rgb(120.0 / 255.0, 196.0 / 255.0, 1.0);
 
 impl canvas::Program<Message> for Overlay {
     type State = State;
@@ -381,12 +459,13 @@ impl canvas::Program<Message> for Overlay {
                     hovered.properties.specific.find_and_get::<Padding>()
                 {
                     for quad in padding_quads(hovered.bounds, padding) {
-                        frame.fill(&quad, DARK_PURPLE.scale_alpha(0.8));
+                        frame.fill(&quad, color::DARK_PURPLE.scale_alpha(0.8));
                     }
                 }
 
-                let mut blue_dashed =
-                    canvas::Stroke::default().with_width(1.0).with_color(BLUE);
+                let mut blue_dashed = canvas::Stroke::default()
+                    .with_width(1.0)
+                    .with_color(color::BLUE);
 
                 blue_dashed.line_dash = canvas::stroke::LineDash {
                     segments: &[5.0, 3.0],

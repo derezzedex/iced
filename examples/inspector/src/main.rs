@@ -15,6 +15,9 @@ use example::*;
 
 mod tools;
 use tools::*;
+
+mod style;
+
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::Layer;
 

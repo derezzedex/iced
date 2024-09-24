@@ -13,6 +13,8 @@ pub use inspector::*;
 pub mod terminal;
 pub use terminal::Terminal;
 
+use crate::style::icon;
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum Kind {
     #[default]
@@ -106,7 +108,7 @@ impl Tools {
 
     pub fn view(&self) -> Element<Message> {
         let hover_cursor = icon_button(
-            hover_cursor(),
+            icon::hover_cursor(),
             self.hover_cursor,
             Message::ToggleHover,
         )
@@ -119,27 +121,27 @@ impl Tools {
 
         let controls = row![
             icon_button(
-                bottom_layout(),
+                icon::bottom_layout(),
                 self.layout == Layout::Bottom,
                 Message::ChangeLayout(Layout::Bottom)
             ),
             icon_button(
-                left_layout(),
+                icon::left_layout(),
                 self.layout == Layout::Left,
                 Message::ChangeLayout(Layout::Left)
             ),
             icon_button(
-                right_layout(),
+                icon::right_layout(),
                 self.layout == Layout::Right,
                 Message::ChangeLayout(Layout::Right)
             ),
             icon_button(
-                new_window(),
+                icon::new_window(),
                 self.layout == Layout::Windowed,
                 Message::ChangeLayout(Layout::Windowed)
             ),
             horizontal_space().width(4),
-            icon_button(close(), false, Message::Close),
+            icon_button(icon::close(), false, Message::Close),
         ];
 
         let content = match self.selected {
@@ -165,12 +167,10 @@ fn tab_button(kind: Kind, selected: &Kind) -> Element<Message> {
     let is_selected = kind == *selected;
 
     let icon = match kind {
-        Kind::Terminal => terminal(),
-        Kind::Inspector { .. } => inspector(),
+        Kind::Terminal => icon::terminal(),
+        Kind::Inspector { .. } => icon::inspector(),
     }
-    .style(move |theme: &iced::Theme, _| svg::Style {
-        color: Some(active(theme, is_selected)),
-    });
+    .style(move |theme, _| icon(theme, is_selected));
 
     let content = column![
         Rule::horizontal(2).style(move |theme: &iced::Theme| rule::Style {
@@ -205,70 +205,6 @@ fn tab_button(kind: Kind, selected: &Kind) -> Element<Message> {
             }
         })
         .into()
-}
-
-fn close<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/close-x.svg"
-    )))
-    .width(16)
-    .height(16)
-}
-
-fn bottom_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/layout-bottom.svg"
-    )))
-    .width(16)
-    .height(16)
-}
-
-fn left_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/layout-left.svg"
-    )))
-    .width(16)
-    .height(16)
-}
-
-fn right_layout<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/layout-right.svg"
-    )))
-    .width(16)
-    .height(16)
-}
-
-fn hover_cursor<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/hover-cursor.svg"
-    )))
-    .width(16)
-    .height(16)
-}
-
-fn inspector<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/inspector.svg"
-    )))
-    .width(16)
-    .height(16)
-}
-
-fn terminal<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/terminal.svg"
-    )))
-    .width(16)
-    .height(16)
-}
-
-fn new_window<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    Svg::new(svg::Handle::from_memory(include_bytes!(
-        "../assets/new-window.svg"
-    )))
-    .width(16)
-    .height(16)
 }
 
 fn icon_button<'a, Message: 'a>(

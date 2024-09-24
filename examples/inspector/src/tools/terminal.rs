@@ -17,6 +17,8 @@ use tracing_subscriber::registry::LookupSpan;
 
 use std::sync::LazyLock;
 
+use crate::style::{self, icon};
+
 static SCROLLABLE_ID: LazyLock<scrollable::Id> =
     LazyLock::new(scrollable::Id::unique);
 
@@ -132,10 +134,7 @@ impl Terminal {
                         row![
                             level_icon(log.level),
                             text(log.level.to_string())
-                                .font(iced::Font {
-                                    weight: iced::font::Weight::Bold,
-                                    ..Default::default()
-                                })
+                                .font(style::text::BOLD)
                                 .size(14)
                         ]
                         .align_y(Center)
@@ -153,12 +152,9 @@ impl Terminal {
                     .push(horizontal_space())
                     .push(
                         column![
-                            text(log.module.to_owned()).size(12).font(
-                                iced::Font {
-                                    weight: iced::font::Weight::Bold,
-                                    ..Default::default()
-                                }
-                            ),
+                            text(log.module.to_owned())
+                                .size(12)
+                                .font(style::text::BOLD),
                             text(log.location.to_owned()).size(12)
                         ]
                         .width(FillPortion(2))
@@ -185,15 +181,9 @@ impl Terminal {
 
         let controls = row![
             row![
-                container(filter().style(
-                    move |theme: &iced::Theme, _status| {
-                        svg::Style {
-                            color: Some(theme.palette().text),
-                        }
-                    }
-                ))
-                .align_y(Center)
-                .padding([4.0, 2.0]),
+                container(icon::filter().style(icon::text))
+                    .align_y(Center)
+                    .padding([4.0, 2.0]),
                 text_input("Filter", &self.filter)
                     .size(12)
                     .on_input(Message::FilterChanged)
@@ -207,31 +197,18 @@ impl Terminal {
                 level_button(tracing::Level::TRACE, self.level.trace),
             ]
             .width(FillPortion(2)),
-            button(trash().style(move |theme: &iced::Theme, _status| {
-                svg::Style {
-                    color: Some(theme.palette().text),
-                }
-            }))
-            .padding(4)
-            .style(button::text)
-            .on_press(Message::Clear),
+            button(icon::trash().style(icon::text))
+                .padding(4)
+                .style(button::text)
+                .on_press(Message::Clear),
         ];
 
         let content: Element<Message> = if logs.len() == 0 {
             container(
                 column![
-                    text("No logs found").font(iced::Font {
-                        weight: iced::font::Weight::Bold,
-                        ..Default::default()
-                    }),
+                    text("No logs found").font(style::text::BOLD),
                     row![
-                        filter().width(14).height(14).style(
-                            move |theme: &iced::Theme, _status| {
-                                svg::Style {
-                                    color: Some(theme.palette().text),
-                                }
-                            }
-                        ),
+                        icon::filter().width(14).height(14).style(icon::text),
                         text("You can tweak the filter options in the top bar")
                             .size(14)
                     ]
@@ -354,52 +331,12 @@ fn active(
 
 fn level_svg<'a, Theme: svg::Catalog>(level: tracing::Level) -> Svg<'a, Theme> {
     match level {
-        tracing::Level::TRACE => info(),
-        tracing::Level::DEBUG => info(),
-        tracing::Level::INFO => info(),
-        tracing::Level::WARN => warn(),
-        tracing::Level::ERROR => danger(),
+        tracing::Level::TRACE
+        | tracing::Level::DEBUG
+        | tracing::Level::INFO => icon::info(),
+        tracing::Level::WARN => icon::warn(),
+        tracing::Level::ERROR => icon::danger(),
     }
-}
-
-fn info<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    static INFO_SVG: LazyLock<svg::Handle> = LazyLock::new(|| {
-        svg::Handle::from_memory(include_bytes!("../../assets/info.svg"))
-    });
-
-    Svg::new(INFO_SVG.clone()).width(16).height(16)
-}
-
-fn warn<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    static WARNING_SVG: LazyLock<svg::Handle> = LazyLock::new(|| {
-        svg::Handle::from_memory(include_bytes!("../../assets/warning.svg"))
-    });
-
-    Svg::new(WARNING_SVG.clone()).width(16).height(16)
-}
-
-fn danger<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    static DANGER_SVG: LazyLock<svg::Handle> = LazyLock::new(|| {
-        svg::Handle::from_memory(include_bytes!("../../assets/danger.svg"))
-    });
-
-    Svg::new(DANGER_SVG.clone()).width(16).height(16)
-}
-
-fn trash<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    static TRASH_SVG: LazyLock<svg::Handle> = LazyLock::new(|| {
-        svg::Handle::from_memory(include_bytes!("../../assets/trash.svg"))
-    });
-
-    Svg::new(TRASH_SVG.clone()).width(16).height(16)
-}
-
-fn filter<'a, Theme: svg::Catalog>() -> Svg<'a, Theme> {
-    static FILTER_SVG: LazyLock<svg::Handle> = LazyLock::new(|| {
-        svg::Handle::from_memory(include_bytes!("../../assets/filter.svg"))
-    });
-
-    Svg::new(FILTER_SVG.clone()).width(16).height(16)
 }
 
 #[derive(Debug, Clone)]
