@@ -145,23 +145,10 @@ impl Inspector {
                 self.highlighted = Some(element);
 
                 if self.file.as_ref().is_some_and(|current| current == &file) {
-                    self.content.perform(text_editor::Action::Move(
-                        text_editor::Motion::DocumentStart,
-                    ));
-
-                    for _ in 1..location.line() {
-                        self.content.perform(text_editor::Action::Move(
-                            text_editor::Motion::Down,
-                        ));
-                    }
-
-                    for _ in 0..location.column() {
-                        self.content.perform(text_editor::Action::Move(
-                            text_editor::Motion::Right,
-                        ));
-                    }
-
-                    self.content.perform(text_editor::Action::SelectWord);
+                    self.highlight_content_at(
+                        location.line(),
+                        location.column(),
+                    );
 
                     return Task::none();
                 }
@@ -189,9 +176,35 @@ impl Inspector {
             Message::FileOpened(content) => {
                 self.content = text_editor::Content::with_text(&content);
 
+                if let Some(element) = &self.highlighted {
+                    let location = element.properties.location;
+                    self.highlight_content_at(
+                        location.line(),
+                        location.column(),
+                    );
+                }
+
                 Task::none()
             }
         }
+    }
+
+    fn highlight_content_at(&mut self, line: u32, column: u32) {
+        self.content.perform(text_editor::Action::Move(
+            text_editor::Motion::DocumentStart,
+        ));
+
+        for _ in 1..line {
+            self.content
+                .perform(text_editor::Action::Move(text_editor::Motion::Down));
+        }
+
+        for _ in 0..column {
+            self.content
+                .perform(text_editor::Action::Move(text_editor::Motion::Right));
+        }
+
+        self.content.perform(text_editor::Action::SelectWord);
     }
 
     pub fn view(&self) -> Element<Message> {
@@ -212,6 +225,7 @@ impl Inspector {
                 element,
                 self.expanded,
             ))
+            .spacing(2)
             .into()
         } else {
             container(
@@ -236,6 +250,7 @@ impl Inspector {
             container(text_editor).width(Length::FillPortion(2)),
             properties
         ]
+        .spacing(4)
         .into()
     }
 }

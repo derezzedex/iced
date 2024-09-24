@@ -222,6 +222,7 @@ impl Terminal {
             .into()
         } else {
             scrollable(Column::from_vec(logs).width(Fill))
+                .spacing(2)
                 .id(SCROLLABLE_ID.clone())
                 .into()
         };
