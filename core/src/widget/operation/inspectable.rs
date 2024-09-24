@@ -16,7 +16,7 @@ pub use serde_json::to_string_pretty;
 pub struct Specific(serde_json::Value);
 
 impl Specific {
-    pub fn from_str(content: &str) -> Self {
+    pub fn from_string(content: &str) -> Self {
         Self(
             serde_json::from_str(content).expect("failed to serialize content"),
         )
@@ -52,7 +52,7 @@ impl Specific {
     {
         self.0
             .as_object()
-            .map(|fields| {
+            .and_then(|fields| {
                 fields
                     .values()
                     .find_map(|v| serde_json::from_value(v.clone()).ok())
@@ -86,11 +86,11 @@ impl PartialEq for Properties {
 
 impl Inspectable for Properties {
     fn edit(&mut self, specific: String) {
-        self.specific = Specific::from_str(&specific);
+        self.specific = Specific::from_string(&specific);
     }
 
     fn properties(&self) -> &Properties {
-        &self
+        self
     }
 }
 
@@ -101,7 +101,6 @@ pub trait Inspectable {
 
 #[derive(Debug, Clone)]
 pub struct Map {
-    // TODO: root: Option<widget::Id>,
     elements: FxHashMap<widget::Id, Element>,
 }
 
@@ -113,10 +112,8 @@ impl Map {
 
 #[derive(Debug, Clone)]
 pub struct Element {
-    // TODO: parent: Option<widget::Id>,
     pub bounds: Rectangle,
     pub properties: Properties,
-    // children: Vec<widget::Id>,
 }
 
 impl Element {
@@ -126,16 +123,8 @@ impl Element {
 }
 
 pub fn map() -> impl Operation<Map> {
-    #[derive(Debug)]
-    struct Container {
-        // TODO: id: widget::Id,
-        children: Vec<widget::Id>,
-    }
-
     #[derive(Default)]
     struct InspectableMap {
-        // TODO: root: Option<widget::Id>,
-        // parent: VecDeque<Container>,
         elements: FxHashMap<widget::Id, Element>,
     }
 
@@ -149,15 +138,9 @@ pub fn map() -> impl Operation<Map> {
             let properties = state.properties();
             let id = properties.id.clone();
 
-            // if let Some(parent) = self.parent.back_mut() {
-            //     parent.children.push(id.clone());
-            // }
-
             let element = Element {
-                // TODO: parent: self.parent.back_mut().map(|p| p.id.clone()),
                 bounds,
                 properties: properties.clone(),
-                // children: vec![],
             };
 
             let _ = self.elements.insert(id, element);
@@ -169,21 +152,11 @@ pub fn map() -> impl Operation<Map> {
             _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<Map>),
         ) {
-            // let id = id.cloned().unwrap_or(widget::Id::unique());
-            // let container = Container { children: vec![] };
-
-            // self.parent.push_back(container);
             operate_on_children(self);
-            // let children =
-            //     self.parent.pop_back().map(|c| c.children).unwrap_or(vec![]);
-            // let _ = self.elements.entry(id).and_modify(|element| {
-            //     element.children = children;
-            // });
         }
 
         fn finish(&self) -> Outcome<Map> {
             let map = Map {
-                // TODO: root: self.root.clone(),
                 elements: self.elements.clone(),
             };
 
