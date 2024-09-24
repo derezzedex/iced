@@ -417,8 +417,10 @@ impl canvas::Program<Message> for Overlay {
         bounds: iced::Rectangle,
         cursor: iced::advanced::mouse::Cursor,
     ) -> (canvas::event::Status, Option<Message>) {
-        if !cursor.is_over(bounds) {
-            return (canvas::event::Status::Ignored, None);
+        use canvas::event::Status;
+
+        if !cursor.is_over(bounds) || !self.hover_allowed {
+            return (Status::Ignored, None);
         }
 
         match event {
@@ -431,14 +433,11 @@ impl canvas::Program<Message> for Overlay {
                     state.cache.clear();
                 }
 
-                return (
-                    canvas::event::Status::Captured,
-                    Some(Message::Locked),
-                );
+                return (Status::Captured, Some(Message::Locked));
             }
             canvas::Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                if !self.hover_allowed || state.locked {
-                    return (canvas::event::Status::Ignored, None);
+                if state.locked {
+                    return (Status::Ignored, None);
                 }
 
                 state.hovered = self
@@ -450,7 +449,7 @@ impl canvas::Program<Message> for Overlay {
                 state.cache.clear();
 
                 return (
-                    canvas::event::Status::Captured,
+                    Status::Captured,
                     Some(Message::Hovered(state.hovered.clone())),
                 );
             }
