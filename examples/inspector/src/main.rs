@@ -34,7 +34,7 @@ pub fn main() -> iced::Result {
                     .add_directive("iced_graphics=debug".parse().unwrap())
                     .add_directive("cosmic_text=info".parse().unwrap())
                     .add_directive("naga=info".parse().unwrap())
-                    .add_directive("wgpu=info".parse().unwrap()),
+                    .add_directive("wgpu=warn".parse().unwrap()),
             ),
         )
         .init();
