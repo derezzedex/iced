@@ -5,7 +5,8 @@ use iced::widget::{
     button, column, container, horizontal_space, pane_grid, row, rule, svg,
     text, Button, Rule, Svg,
 };
-use iced::{Background, Color, Element, Shrink, Task};
+use iced::Alignment::Center;
+use iced::{Background, Color, Element, Fill, Font, Shrink, Task};
 
 pub mod inspector;
 pub use inspector::*;
@@ -157,6 +158,22 @@ impl Tools {
             }),
             row![hover_cursor, tabs, horizontal_space(), controls],
             content,
+            column![
+                Rule::horizontal(1).style(|theme: &iced::Theme| rule::Style {
+                    color: theme.extended_palette().background.base.color,
+                    width: 1,
+                    ..rule::default(theme)
+                }),
+                row![
+                    horizontal_space(),
+                    icon::iced().content_fit(iced::ContentFit::Cover),
+                    text(iced::VERSION).font(Font::MONOSPACE).size(10),
+                    horizontal_space().width(4)
+                ]
+                .align_y(Center)
+                .spacing(4),
+            ]
+            .width(Fill)
         ])
         .style(|_| container::Style {
             background: Some(Background::Color(Color::from_rgb(0.1, 0.1, 0.1))),

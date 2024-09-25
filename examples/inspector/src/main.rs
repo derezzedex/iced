@@ -181,20 +181,23 @@ impl Devtools {
                     }
                     Some(Event::LayoutChanged(layout)) => {
                         match layout {
-                            Layout::Windowed => match self.editor {
-                                Editor::Closed | Editor::Window(_) => {}
-                                Editor::Pane(editor) => {
-                                    self.panes.close(editor);
+                            Layout::Windowed => {
+                                match self.editor {
+                                    Editor::Closed | Editor::Window(_) => {}
+                                    Editor::Pane(editor) => {
+                                        self.panes.close(editor);
 
-                                    let (window, open) =
+                                        let (window, open) =
                                         window::open(window::Settings {
                                             size: Size::new(1024.0, 480.0),
+                                            icon: window::icon::from_file_data(include_bytes!("../assets/iced.ico"), None).ok(),
                                             ..Default::default()
                                         });
-                                    self.editor = Editor::Window(window);
-                                    task = task.chain(open.discard());
+                                        self.editor = Editor::Window(window);
+                                        task = task.chain(open.discard());
+                                    }
                                 }
-                            },
+                            }
                             layout => match &mut self.editor {
                                 Editor::Closed => {}
                                 Editor::Window(id) => {

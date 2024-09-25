@@ -223,8 +223,7 @@ impl Terminal {
                 })
                 .on_press(Message::Clear),
         ]
-        .spacing(1)
-        .height(Shrink);
+        .spacing(1);
 
         let content: Element<Message> = if logs.len() == 0 {
             container(

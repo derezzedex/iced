@@ -45,6 +45,14 @@ pub mod icon {
         }
     }
 
+    pub fn iced<'a, Theme: Catalog>() -> Svg<'a, Theme> {
+        static HANDLE: LazyLock<Handle> = LazyLock::new(|| {
+            Handle::from_memory(include_bytes!("../assets/iced.svg"))
+        });
+
+        Svg::new(HANDLE.clone()).width(16).height(16)
+    }
+
     pub fn info<'a, Theme: Catalog>() -> Svg<'a, Theme> {
         static HANDLE: LazyLock<Handle> = LazyLock::new(|| {
             Handle::from_memory(include_bytes!("../assets/info.svg"))

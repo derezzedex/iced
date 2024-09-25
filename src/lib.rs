@@ -477,6 +477,9 @@ use iced_winit as shell;
 use iced_winit::core;
 use iced_winit::runtime;
 
+/// Contains the `CARGO_PKG_VERSION` of the library.
+pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 pub use iced_futures::futures;
 pub use iced_futures::stream;
 

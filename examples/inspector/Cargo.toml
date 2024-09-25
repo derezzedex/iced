@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["advanced", "canvas", "highlighter", "tokio", "inspector", "svg"]
+iced.features = ["advanced", "canvas", "highlighter", "tokio", "inspector", "svg", "image"]
 
 log.workspace = true
 tracing.workspace = true
