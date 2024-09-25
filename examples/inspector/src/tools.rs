@@ -111,8 +111,7 @@ impl Tools {
             icon::hover_cursor(),
             self.hover_cursor,
             Message::ToggleHover,
-        )
-        .padding(4);
+        );
 
         let tabs = row![
             tab_button(Kind::Inspector, &self.selected,),
@@ -140,7 +139,6 @@ impl Tools {
                 self.layout == Layout::Windowed,
                 Message::ChangeLayout(Layout::Windowed)
             ),
-            horizontal_space().width(4),
             icon_button(icon::close(), false, Message::Close),
         ];
 
@@ -152,6 +150,11 @@ impl Tools {
         };
 
         container(column![
+            Rule::horizontal(1).style(|theme: &iced::Theme| rule::Style {
+                color: theme.extended_palette().background.base.color,
+                width: 1,
+                ..rule::default(theme)
+            }),
             row![hover_cursor, tabs, horizontal_space(), controls],
             content,
         ])

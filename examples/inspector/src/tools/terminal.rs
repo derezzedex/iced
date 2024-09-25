@@ -5,7 +5,7 @@ use iced::widget::{
 };
 use iced::Alignment::Center;
 use iced::Length::FillPortion;
-use iced::{color, padding, stream, Background, Color};
+use iced::{border, color, stream, Background, Color};
 use iced::{Element, Fill, Shrink, Task};
 
 use std::collections::BTreeMap;
@@ -183,25 +183,48 @@ impl Terminal {
             row![
                 container(icon::filter().style(icon::text))
                     .align_y(Center)
-                    .padding([4.0, 2.0]),
+                    .padding(4),
                 text_input("Filter", &self.filter)
                     .size(12)
                     .on_input(Message::FilterChanged)
-            ]
-            .width(FillPortion(3)),
+                    .style(|theme: &iced::Theme, status| text_input::Style {
+                        border: if !matches!(
+                            status,
+                            text_input::Status::Focused
+                        ) {
+                            border::width(0)
+                        } else {
+                            border::color(
+                                theme.extended_palette().primary.strong.color,
+                            )
+                            .width(2)
+                        },
+                        ..text_input::default(theme, status)
+                    })
+            ],
             row![
                 level_button(tracing::Level::ERROR, self.level.error),
                 level_button(tracing::Level::WARN, self.level.warn),
                 level_button(tracing::Level::INFO, self.level.info),
                 level_button(tracing::Level::DEBUG, self.level.debug),
                 level_button(tracing::Level::TRACE, self.level.trace),
-            ]
-            .width(FillPortion(2)),
+            ],
             button(icon::trash().style(icon::text))
                 .padding(4)
-                .style(button::text)
+                .style(|theme, status| button::Style {
+                    background: if matches!(status, button::Status::Hovered) {
+                        Some(Background::Color(
+                            theme.palette().text.scale_alpha(0.05),
+                        ))
+                    } else {
+                        None
+                    },
+                    ..button::text(theme, status)
+                })
                 .on_press(Message::Clear),
-        ];
+        ]
+        .spacing(1)
+        .height(Shrink);
 
         let content: Element<Message> = if logs.len() == 0 {
             container(
@@ -251,12 +274,13 @@ fn level_button<'a>(
             text(level.to_string()).size(12).center()
         ]
         .spacing(4)
-        .padding(2)
+        .padding([4.0, 8.0])
         .align_y(Center),
-    ];
+    ]
+    .width(Shrink);
 
     button(content)
-        .padding(padding::all(2).top(0))
+        .padding(0)
         .on_press(Message::ToggleLevel(level))
         .style(move |theme, status| {
             let color = active(theme, level, is_selected);

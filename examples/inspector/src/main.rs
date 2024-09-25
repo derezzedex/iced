@@ -272,6 +272,17 @@ impl Devtools {
                 }),
             })
             .on_resize(10, Message::PaneResized)
+            .style(|theme| pane_grid::Style {
+                hovered_split: pane_grid::Line {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                },
+                picked_split: pane_grid::Line {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                },
+                ..pane_grid::default(theme)
+            })
             .into(),
         }
     }

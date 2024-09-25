@@ -321,7 +321,7 @@ fn expandable<'a>(
 ) -> Element<'a, Message> {
     let rule = || {
         Rule::horizontal(1).style(|theme: &iced::Theme| rule::Style {
-            color: theme.extended_palette().background.strong.color,
+            color: theme.extended_palette().background.weak.color,
             width: 1,
             ..rule::default(theme)
         })
