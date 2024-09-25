@@ -269,7 +269,7 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
         translation: Vector,
-    ) -> Option<overlay::Element<'_, Message, Theme, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let overlay = Overlay(Some(
             InnerBuilder {
                 cell: self.element.borrow().as_ref().unwrap().clone(),

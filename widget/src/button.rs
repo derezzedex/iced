@@ -208,8 +208,8 @@ struct Properties {
 }
 
 impl Properties {
-    fn new<'a, Message, Theme: Catalog, Renderer: crate::core::Renderer>(
-        button: &Button<'a, Message, Theme, Renderer>,
+    fn new<Message, Theme: Catalog, Renderer: crate::core::Renderer>(
+        button: &Button<'_, Message, Theme, Renderer>,
     ) -> Self {
         Self {
             padding: button.padding,
@@ -237,12 +237,11 @@ struct Messages {
 
 impl Messages {
     fn new<
-        'a,
         Message: Clone + Debug,
         Theme: Catalog,
         Renderer: crate::core::Renderer,
     >(
-        button: &Button<'a, Message, Theme, Renderer>,
+        button: &Button<'_, Message, Theme, Renderer>,
     ) -> Self {
         Messages {
             on_press: button
