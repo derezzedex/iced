@@ -1,3 +1,4 @@
+//! A generic [`Widget`].
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -10,6 +11,13 @@ use crate::{
 };
 
 use std::borrow::Borrow;
+
+/// Consumes the [`Element`] to return the inner [`Widget`].
+pub fn into_raw<'a, Message, Theme, Renderer>(
+    element: Element<'a, Message, Theme, Renderer>,
+) -> Box<dyn Widget<Message, Theme, Renderer> + 'a> {
+    element.widget
+}
 
 /// A generic [`Widget`].
 ///
