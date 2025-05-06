@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 /// A built-in theme.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Theme {
     /// The built-in light variant.
     Light,
@@ -223,6 +224,7 @@ impl fmt::Display for Theme {
 
 /// A [`Theme`] with a customized [`Palette`].
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Custom {
     name: Cow<'static, str>,
     palette: Palette,

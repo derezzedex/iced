@@ -285,6 +285,7 @@ impl Palette {
 
 /// An extended set of colors generated from a [`Palette`].
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Extended {
     /// The set of background colors.
     pub background: Background,
@@ -423,6 +424,7 @@ impl Extended {
 
 /// A pair of background and text colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Pair {
     /// The background color.
     pub color: Color,
@@ -447,6 +449,7 @@ impl Pair {
 
 /// A set of background colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Background {
     /// The base background color.
     pub base: Pair,
@@ -480,6 +483,7 @@ impl Background {
 
 /// A set of primary colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Primary {
     /// The base primary color.
     pub base: Pair,
@@ -505,6 +509,7 @@ impl Primary {
 
 /// A set of secondary colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Secondary {
     /// The base secondary color.
     pub base: Pair,
@@ -531,6 +536,7 @@ impl Secondary {
 
 /// A set of success colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Success {
     /// The base success color.
     pub base: Pair,
@@ -556,6 +562,7 @@ impl Success {
 
 /// A set of warning colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Warning {
     /// The base warning color.
     pub base: Pair,
@@ -581,6 +588,7 @@ impl Warning {
 
 /// A set of danger colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Danger {
     /// The base danger color.
     pub base: Pair,
