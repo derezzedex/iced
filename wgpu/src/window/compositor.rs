@@ -320,7 +320,7 @@ impl graphics::Compositor for Compositor {
         surface.configure(
             &self.engine.device,
             &wgpu::SurfaceConfiguration {
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
                 format: self.format,
                 present_mode: self.settings.present_mode,
                 width,
