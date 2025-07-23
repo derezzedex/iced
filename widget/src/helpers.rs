@@ -538,7 +538,9 @@ where
 
 /// Creates a new [`Grid`] from an iterator.
 pub fn grid<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+    children: impl IntoIterator<
+        Item = impl Into<Element<'a, Message, Theme, Renderer>>,
+    >,
 ) -> Grid<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
