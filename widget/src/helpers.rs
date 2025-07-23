@@ -524,7 +524,9 @@ where
 /// }
 /// ```
 pub fn row<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+    children: impl IntoIterator<
+        Item = impl Into<Element<'a, Message, Theme, Renderer>>,
+    >,
 ) -> Row<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,

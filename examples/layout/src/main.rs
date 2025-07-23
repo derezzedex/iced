@@ -92,23 +92,17 @@ impl Layout {
         })
         .padding(4);
 
-        let controls = row([
+        let controls = row![
             (!self.example.is_first()).then_some(
                 button("← Previous")
                     .padding([5, 10])
-                    .on_press(Message::Previous)
-                    .into(),
+                    .on_press(Message::Previous),
             ),
-            Some(horizontal_space().into()),
+            Some(horizontal_space()),
             (!self.example.is_last()).then_some(
-                button("Next →")
-                    .padding([5, 10])
-                    .on_press(Message::Next)
-                    .into(),
+                button("Next →").padding([5, 10]).on_press(Message::Next),
             ),
-        ]
-        .into_iter()
-        .flatten());
+        ];
 
         column![header, example, controls]
             .spacing(10)

@@ -292,7 +292,6 @@ impl Generator {
                                     )
                                     .padding(5)
                                     .style(container::rounded_box)
-                                    .into()
                                 }))
                                 .spacing(10)
                                 .wrap();
