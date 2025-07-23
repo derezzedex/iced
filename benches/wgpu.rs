@@ -197,7 +197,7 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
 fn layered_text<'a, Message: 'a>(
     n: usize,
 ) -> Element<'a, Message, Theme, Renderer> {
-    stack((0..n).map(|i| text(format!("I am paragraph {i}!")).into()))
+    stack((0..n).map(|i| text(format!("I am paragraph {i}!"))))
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
