@@ -1301,7 +1301,6 @@ where
             )
         ]
         .spacing(settings.spacing)
-        .into()
     }))
     .spacing(settings.spacing * 0.75)
     .padding([0.0, settings.spacing.0])
@@ -1334,7 +1333,6 @@ where
             )
         ]
         .spacing(settings.spacing)
-        .into()
     }))
     .spacing(settings.spacing * 0.75)
     .padding([0.0, settings.spacing.0])
@@ -1359,7 +1357,6 @@ where
                     .on_link_click(on_link_click.clone())
                     .font(Font::MONOSPACE)
                     .size(settings.code_size)
-                    .into()
             })))
             .padding(settings.code_size),
         )

@@ -61,7 +61,9 @@ where
 
     /// Creates a [`Column`] with the given elements.
     pub fn with_children(
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+        children: impl IntoIterator<
+            Item = impl Into<Element<'a, Message, Theme, Renderer>>,
+        >,
     ) -> Self {
         let iterator = children.into_iter();
 
@@ -157,7 +159,9 @@ where
     /// Extends the [`Column`] with the given children.
     pub fn extend(
         self,
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+        children: impl IntoIterator<
+            Item = impl Into<Element<'a, Message, Theme, Renderer>>,
+        >,
     ) -> Self {
         children.into_iter().fold(self, Self::push)
     }
@@ -172,15 +176,12 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer: crate::core::Renderer>
-    FromIterator<Element<'a, Message, Theme, Renderer>>
+impl<'a, T, Message, Theme, Renderer: crate::core::Renderer> FromIterator<T>
     for Column<'a, Message, Theme, Renderer>
+where
+    T: Into<Element<'a, Message, Theme, Renderer>>,
 {
-    fn from_iter<
-        T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    >(
-        iter: T,
-    ) -> Self {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Self::with_children(iter)
     }
 }

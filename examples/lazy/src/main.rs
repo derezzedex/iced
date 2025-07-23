@@ -181,7 +181,6 @@ impl App {
                     button
                 ]
                 .spacing(20)
-                .into()
             }))
             .spacing(10)
         });

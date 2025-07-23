@@ -544,7 +544,7 @@ where
         container(
             scrollable(
                 column(logs.iter().map(|log| {
-                    text(log).size(12).font(Renderer::MONOSPACE_FONT).into()
+                    text(log).size(12).font(Renderer::MONOSPACE_FONT)
                 }),)
                 .spacing(3),
             )

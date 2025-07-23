@@ -465,7 +465,9 @@ where
 /// }
 /// ```
 pub fn column<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+    children: impl IntoIterator<
+        Item = impl Into<Element<'a, Message, Theme, Renderer>>,
+    >,
 ) -> Column<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
