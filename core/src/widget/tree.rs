@@ -230,6 +230,7 @@ impl State {
     ///
     /// # Panics
     /// This method will panic if the downcast fails or the [`State`] is [`State::None`].
+    #[track_caller]
     pub fn downcast_ref<T>(&self) -> &T
     where
         T: 'static,
@@ -246,6 +247,7 @@ impl State {
     ///
     /// # Panics
     /// This method will panic if the downcast fails or the [`State`] is [`State::None`].
+    #[track_caller]
     pub fn downcast_mut<T>(&mut self) -> &mut T
     where
         T: 'static,
