@@ -262,6 +262,7 @@ impl<T> Subscription<T> {
     /// # Panics
     /// The closure provided must be a non-capturing closure. The method
     /// will panic in debug mode otherwise.
+    #[track_caller]
     pub fn map<F, A>(mut self, f: F) -> Subscription<A>
     where
         T: 'static,

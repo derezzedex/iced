@@ -41,6 +41,7 @@ impl Color {
     ///
     /// In debug mode, it will panic if the values are not in the correct
     /// range: 0.0 - 1.0
+    #[track_caller]
     const fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
         debug_assert!(
             r >= 0.0 && r <= 1.0,
@@ -59,11 +60,13 @@ impl Color {
     }
 
     /// Creates a [`Color`] from its RGB components.
+    #[track_caller]
     pub const fn from_rgb(r: f32, g: f32, b: f32) -> Color {
         Color::from_rgba(r, g, b, 1.0f32)
     }
 
     /// Creates a [`Color`] from its RGBA components.
+    #[track_caller]
     pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
         Color::new(r, g, b, a)
     }
@@ -74,6 +77,7 @@ impl Color {
     }
 
     /// Creates a [`Color`] from its RGB8 components and an alpha value.
+    #[track_caller]
     pub const fn from_rgba8(r: u8, g: u8, b: u8, a: f32) -> Color {
         Color::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a)
     }
@@ -184,6 +188,7 @@ impl Color {
     }
 
     /// Returns the inverted [`Color`].
+    #[track_caller]
     pub fn inverse(self) -> Color {
         Color::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
     }
@@ -198,12 +203,14 @@ impl Color {
 }
 
 impl From<[f32; 3]> for Color {
+    #[track_caller]
     fn from([r, g, b]: [f32; 3]) -> Self {
         Color::new(r, g, b, 1.0)
     }
 }
 
 impl From<[f32; 4]> for Color {
+    #[track_caller]
     fn from([r, g, b, a]: [f32; 4]) -> Self {
         Color::new(r, g, b, a)
     }
