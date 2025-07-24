@@ -90,6 +90,7 @@ where
     Renderer: core::Renderer,
 {
     /// Creates a new vertical [`Scrollable`].
+    #[track_caller]
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
@@ -97,6 +98,7 @@ where
     }
 
     /// Creates a new [`Scrollable`] with the given [`Direction`].
+    #[track_caller]
     pub fn with_direction(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         direction: impl Into<Direction>,
@@ -114,6 +116,7 @@ where
         .validate()
     }
 
+    #[track_caller]
     fn validate(mut self) -> Self {
         let size_hint = self.content.as_widget().size_hint();
 
@@ -144,6 +147,7 @@ where
     }
 
     /// Sets the [`Direction`] of the [`Scrollable`].
+    #[track_caller]
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
         self.validate()
