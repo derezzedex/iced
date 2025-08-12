@@ -17,6 +17,8 @@ pub struct Engine {
     pub(crate) triangle_pipeline: triangle::Pipeline,
     #[cfg(any(feature = "image", feature = "svg"))]
     pub(crate) image_pipeline: crate::image::Pipeline,
+    // #[cfg(feature = "offscreen")]
+    pub(crate) offscreen: crate::offscreen::Pipeline,
     pub(crate) primitive_storage: Arc<RwLock<primitive::Storage>>,
     _shell: Shell,
 }
@@ -40,6 +42,9 @@ impl Engine {
                 format,
                 antialiasing,
             ),
+
+            // #[cfg(feature = "offscreen")]
+            offscreen: crate::offscreen::Pipeline::new(&device, format),
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline: {
