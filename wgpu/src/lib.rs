@@ -37,7 +37,7 @@ mod quad;
 mod text;
 mod triangle;
 
-// #[cfg(feature = "offscreen")]
+#[cfg(feature = "offscreen")]
 mod offscreen;
 
 #[cfg(any(feature = "image", feature = "svg"))]
@@ -171,12 +171,19 @@ impl Renderer {
         frame: &wgpu::TextureView,
         viewport: &Viewport,
     ) -> wgpu::SubmissionIndex {
-        self.engine.offscreen.prepare(&self.engine.device, frame);
+        #[cfg(not(feature = "offscreen"))]
+        let encoder = self.draw(clear_color, &frame, viewport);
 
-        let view = self.engine.offscreen.view().clone();
-        let mut encoder = self.draw(clear_color, &view, viewport);
+        #[cfg(feature = "offscreen")]
+        let encoder = {
+            self.engine.offscreen.prepare(&self.engine.device, frame);
 
-        self.engine.offscreen.render(&mut encoder, frame);
+            let view = self.engine.offscreen.view().clone();
+            let mut encoder = self.draw(clear_color, &view, viewport);
+
+            self.engine.offscreen.render(&mut encoder, frame);
+            encoder
+        };
 
         self.staging_belt.finish();
         let submission = self.engine.queue.submit([encoder.finish()]);

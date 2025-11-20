@@ -83,6 +83,8 @@ unconditional-rendering = ["iced_winit/unconditional-rendering"]
 sipper = ["iced_runtime/sipper"]
 # Enables Linux system theme detection
 linux-theme-detection = ["iced_winit/linux-theme-detection"]
+# Renders offscreen before blitting, allowing post-processing with `shader`
+offscreen = ["iced_renderer/offscreen"]
 
 [dependencies]
 iced_debug.workspace = true
